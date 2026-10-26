@@ -26,7 +26,8 @@ export const getInitialWizardData = () => ({
   hubId: 'HUB-01',
   village: 'Phirangipuram Village',
   startDate: new Date().toISOString().split('T')[0],
-  expiryDate: '2026-12-31',
+  neverEnding: true,
+  expiryDate: 'Never Ending',
   trackingEnabled: true,
   approvalRequired: false,
   vehicleId: '',
@@ -76,7 +77,7 @@ export const QRProvider = ({ children }) => {
       const existingIds = new Set(parsed.map((q) => q.id));
       const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
       const updated = parsed.map((item) => {
-        if (item.id === 'QR-00013' && item.status === 'Changes Requested') {
+        if (item.status === 'Changes Requested') {
           return { ...item, status: 'Active' };
         }
         return item;
@@ -97,7 +98,24 @@ export const QRProvider = ({ children }) => {
     const saved = localStorage.getItem('vk_scan_events');
     return saved ? JSON.parse(saved) : INITIAL_SCAN_EVENTS;
   });
-  const [approvals, setApprovals] = useState(INITIAL_APPROVALS);
+  const [approvals, setApprovals] = useState(() => {
+    const saved = localStorage.getItem('vk_approvals');
+    if (!saved) return INITIAL_APPROVALS;
+    try {
+      const parsed = JSON.parse(saved);
+      const existingIds = new Set(parsed.map((a) => a.id));
+      const missing = INITIAL_APPROVALS.filter((a) => !existingIds.has(a.id));
+      const updated = parsed.map((a) => {
+        if (a.status === 'Changes Requested') {
+          return { ...a, status: 'Approved' };
+        }
+        return a;
+      });
+      return [...updated, ...missing];
+    } catch {
+      return INITIAL_APPROVALS;
+    }
+  });
   const [permissionsMatrix, setPermissionsMatrix] = useState(INITIAL_PERMISSIONS_MATRIX);
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
   const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOGS);
@@ -117,9 +135,28 @@ export const QRProvider = ({ children }) => {
     if (clearNotification) setWizardNotification(null);
   };
 
-  // Start new QR code creation flow from beginning
-  const startNewQRCode = () => {
+  // Create QR Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const openCreateQRModal = (initialData = null) => {
     resetWizard(true);
+    if (initialData) {
+      setWizardData((prev) => ({ ...prev, ...initialData }));
+    }
+    setIsCreateModalOpen(true);
+  };
+
+  const closeCreateQRModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  // Start new QR code creation flow from anywhere
+  const startNewQRCode = (initialData = null) => {
+    resetWizard(true);
+    if (initialData) {
+      setWizardData((prev) => ({ ...prev, ...initialData }));
+    }
+    setWizardStep(1);
     setActiveScreen('wizard');
   };
 
@@ -225,7 +262,7 @@ export const QRProvider = ({ children }) => {
       village: wizardData.village || 'Phirangipuram Village',
       createdAt: new Date().toISOString().split('T')[0],
       lastModified: new Date().toISOString().split('T')[0],
-      expiryDate: wizardData.expiryDate || '2026-12-31',
+      expiryDate: (wizardData.neverEnding || wizardData.expiryDate === 'Never Ending') ? 'Never Ending' : (wizardData.expiryDate || 'Never Ending'),
       trackingEnabled: wizardData.trackingEnabled !== false,
       approvalRequired: true,
       version: 'v1.0',
@@ -281,17 +318,19 @@ export const QRProvider = ({ children }) => {
       reviewerComments: '',
     };
     setApprovals((prev) => [newApproval, ...prev]);
-    addAuditLog('Submitted for Approval', `${newId} (${newQR.name})`, 'Created new QR config');
-    showToast(`QR Code ${newId} generated! Submitted to Permissions & Approvals for review.`, 'warning');
+    addAuditLog('Created & Published', `${newId} (${newQR.name})`, 'Created and published QR config');
+    showToast(`QR Code ${newId} published! Moved to Permissions & Approvals for verification.`, 'success');
 
     setSelectedQrId(newId);
     // Reset wizard back to starting point (Step 1 with clean initial defaults)
     resetWizard();
+    setIsCreateModalOpen(false);
+    setActiveScreen('listing');
     setWizardNotification({
       type: 'submitted',
       qrId: newId,
       name: newQR.name,
-      message: `QR Code ${newId} (${newQR.name}) generated & submitted for approval! Wizard is reset to Step 1 so you can create another QR code, or switch screens when you are ready.`,
+      message: `QR Code ${newId} (${newQR.name}) published! Awaiting post-publish verification & permissions.`,
       targetScreen: 'permissions',
       targetLabel: 'View in Permissions & Approvals',
     });
@@ -318,7 +357,7 @@ export const QRProvider = ({ children }) => {
       village: wizardData.village || 'Phirangipuram Village',
       createdAt: new Date().toISOString().split('T')[0],
       lastModified: new Date().toISOString().split('T')[0],
-      expiryDate: wizardData.expiryDate || '2026-12-31',
+      expiryDate: (wizardData.neverEnding || wizardData.expiryDate === 'Never Ending') ? 'Never Ending' : (wizardData.expiryDate || 'Never Ending'),
       trackingEnabled: wizardData.trackingEnabled !== false,
       approvalRequired: false,
       version: 'v1.0 (Draft)',
@@ -356,19 +395,21 @@ export const QRProvider = ({ children }) => {
     setQrCodes((prev) => [newQR, ...prev]);
 
     // Note: Do NOT add to approvals list! Inactive drafts do NOT go to Permissions & Approvals.
-    addAuditLog('Saved Inactive Draft', `${newId} (${newQR.name})`, 'Saved as Draft in QR Inventory');
-    showToast(`QR Code ${newId} saved as Inactive Draft in QR Inventory.`);
+    addAuditLog('Saved Inactive Draft', `${newId} (${newQR.name})`, 'Saved as Draft in QR Management');
+    showToast(`QR Code ${newId} saved as Inactive Draft in QR Management.`);
 
     setSelectedQrId(newId);
     // Reset wizard back to starting point (Step 1 with clean initial defaults)
     resetWizard();
+    setIsCreateModalOpen(false);
+    setActiveScreen('listing');
     setWizardNotification({
       type: 'draft',
       qrId: newId,
       name: newQR.name,
-      message: `QR Code ${newId} (${newQR.name}) saved as inactive draft! Wizard is reset to Step 1 so you can create another QR code, or switch screens when you are ready.`,
+      message: `QR Code ${newId} (${newQR.name}) saved as inactive draft!`,
       targetScreen: 'listing',
-      targetLabel: 'View in QR Inventory',
+      targetLabel: 'View in QR Management',
     });
     return newId;
   };
@@ -470,7 +511,7 @@ export const QRProvider = ({ children }) => {
     );
 
     if (action === 'approve') {
-      showToast(`QR Code ${targetQrId || approvalId} approved! Now live in QR Inventory.`, 'success');
+      showToast(`QR Code ${targetQrId || approvalId} approved! Now live in QR Management.`, 'success');
       if (targetQrId) setSelectedQrId(targetQrId);
     } else if (action === 'request_changes') {
       showToast(`Changes requested for ${targetQrId || approvalId}. Updated status in Details.`, 'warning');
@@ -523,6 +564,10 @@ export const QRProvider = ({ children }) => {
         saveWizardDraft,
         resetWizard,
         startNewQRCode,
+        isCreateModalOpen,
+        setIsCreateModalOpen,
+        openCreateQRModal,
+        closeCreateQRModal,
         getInitialWizardData,
         testScanModal,
         setTestScanModal,

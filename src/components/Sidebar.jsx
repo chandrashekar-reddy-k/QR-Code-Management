@@ -39,8 +39,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       group: 'QR Studio Core',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'listing', label: 'QR Inventory', icon: QrCode },
-        { id: 'wizard', label: 'Create QR Code', icon: PlusCircle, isHighlight: true },
+        { id: 'listing', label: 'QR Management', icon: QrCode },
         { id: 'design-studio', label: 'Design Studio', icon: Palette },
         { id: 'details', label: 'QR Code Details', icon: FileText },
       ],
@@ -119,11 +118,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    if (item.id === 'wizard') {
-                      startNewQRCode();
-                    } else {
-                      setActiveScreen(item.id);
-                    }
+                    setActiveScreen(item.id);
                     if (setMobileOpen) setMobileOpen(false);
                   }}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRProvider, useQR } from './context/QRContext';
-import { Sidebar, TopHeader, TestScanModal, ToastContainer } from './components';
+import { Sidebar, TopHeader, TestScanModal, ToastContainer, CreateQRModal } from './components';
 
 // Screens
 import {
@@ -96,6 +96,9 @@ const MainAppContent = () => {
 
       {/* Interactive Scan Simulator Modal */}
       <TestScanModal />
+
+      {/* In-Place Create QR Modal */}
+      <CreateQRModal />
 
       {/* Global Toast Alerts */}
       <ToastContainer />

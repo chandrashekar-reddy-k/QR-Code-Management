@@ -24,8 +24,7 @@ export const TopHeader = ({ onMenuClick }) => {
 
   const titles = {
     dashboard: { title: 'QR Operations Dashboard', sub: 'Performance overview, live scan trends and quick actions' },
-    listing: { title: 'QR Code Inventory', sub: 'Central management table, multifaceted filtering and batch operations' },
-    wizard: { title: 'Create QR Code', sub: 'Configure destination, customize branding, export print/digital & publish' },
+    listing: { title: 'QR Management', sub: 'Central operations catalog, dynamic routing, batch operations & quick creation' },
     'design-studio': { title: 'Design Studio & Export', sub: 'Brand templates, real-time contrast safeguards, vector print layouts & digital packages' },
     details: { title: 'QR Code Details & Lifecycle', sub: 'Overview, destinations, assets, scan event records and version audit log' },
     'scan-history': { title: 'Scan History & Event Log', sub: 'Operational investigation tool, device forensics and conversion attribution' },
@@ -58,8 +57,6 @@ export const TopHeader = ({ onMenuClick }) => {
       </div>
 
       <div className="header-right">
-
-
         {/* Pending approvals alert badge */}
         {pendingCount > 0 && (
           <button
@@ -79,16 +76,15 @@ export const TopHeader = ({ onMenuClick }) => {
           </button>
         )}
 
-        {/* Quick Create QR Button */}
-        {activeScreen !== 'wizard' && (
-          <button
-            onClick={() => startNewQRCode()}
-            className="btn btn-primary btn-sm"
-          >
-            <Plus size={15} />
-            <span>Create QR</span>
-          </button>
-        )}
+        {/* Quick Create QR Button (accessible from all pages) */}
+        <button
+          onClick={() => startNewQRCode()}
+          className="btn btn-primary btn-sm"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Plus size={15} />
+          <span>Create QR</span>
+        </button>
       </div>
     </header>
   );

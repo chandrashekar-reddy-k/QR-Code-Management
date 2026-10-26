@@ -32,6 +32,7 @@ export const Dashboard = () => {
     auditLogs,
     setActiveScreen,
     setSelectedQrId,
+    openCreateQRModal,
     setWizardData,
     setWizardStep,
     setTestScanModal,
@@ -90,19 +91,16 @@ export const Dashboard = () => {
     .sort((a, b) => (b.metrics?.scans || 0) - (a.metrics?.scans || 0))
     .slice(0, 4);
 
-  // Quick Action Handler to launch wizard with prefilled type
+  // Quick Action Handler to launch Create QR modal with preset
   const handleQuickCreate = (type, cta, title, template) => {
-    setWizardData((prev) => ({
-      ...prev,
+    openCreateQRModal({
       type,
       name: `${type} QR - ${new Date().toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}`,
       ctaText: cta,
       campaignTitle: title,
       template: template || 'VillagKart Branded',
       fgColor: '#00891D',
-    }));
-    setWizardStep(1);
-    setActiveScreen('wizard');
+    });
   };
 
   return (
@@ -330,10 +328,10 @@ export const Dashboard = () => {
               </select>
             </div>
 
-            {/* Hub */}
+            {/* Hub / Territory */}
             <div>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                Collection Hub
+                Hub / Territory
               </label>
               <select
                 value={selectedHub}
@@ -341,7 +339,7 @@ export const Dashboard = () => {
                 className="form-control"
                 style={{ fontSize: '12.5px', padding: '6px 8px' }}
               >
-                <option value="all">All Hubs & Territories</option>
+                <option value="all">Select All</option>
                 <option value="HUB-01">Phirangipuram Hub</option>
                 <option value="HUB-02">Guntur Central Hub</option>
                 <option value="HUB-03">Tenali Rural Hub</option>
@@ -353,7 +351,7 @@ export const Dashboard = () => {
             {/* Village */}
             <div>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                Target Village
+                Village
               </label>
               <select
                 value={selectedVillage}
@@ -361,7 +359,7 @@ export const Dashboard = () => {
                 className="form-control"
                 style={{ fontSize: '12.5px', padding: '6px 8px' }}
               >
-                <option value="all">All Villages (18 Active)</option>
+                <option value="all">Select All</option>
                 <option value="Phirangipuram">Phirangipuram Village</option>
                 <option value="Prattipadu">Prattipadu Village</option>
                 <option value="Siripuram">Siripuram Village</option>
@@ -381,7 +379,7 @@ export const Dashboard = () => {
                 className="form-control"
                 style={{ fontSize: '12.5px', padding: '6px 8px' }}
               >
-                <option value="all">All Campaigns</option>
+                <option value="all">Select All</option>
                 <option value="Village Launch">Village Launch Festival</option>
                 <option value="Mobile App">VillagKart Mobile App</option>
                 <option value="Tenali">Tenali Festival Agro Promo</option>

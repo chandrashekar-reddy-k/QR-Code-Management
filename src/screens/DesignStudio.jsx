@@ -40,6 +40,7 @@ export const DesignStudio = () => {
     fgColor: currentQR?.design?.fgColor || '#00891D',
     bgColor: currentQR?.design?.bgColor || '#FFFFFF',
     showLogo: currentQR?.design?.showLogo ?? true,
+    logoSrc: currentQR?.design?.logoSrc || '/villagekart_icon.svg',
     hasCtaFrame: currentQR?.design?.hasCtaFrame ?? true,
     ctaText: currentQR?.design?.ctaText || 'SCAN TO DOWNLOAD',
     campaignTitle: currentQR?.name || 'VillagKart App Download',
@@ -70,6 +71,7 @@ export const DesignStudio = () => {
         fgColor: currentQR.design?.fgColor || '#00891D',
         bgColor: currentQR.design?.bgColor || '#FFFFFF',
         showLogo: currentQR.design?.showLogo ?? true,
+        logoSrc: currentQR.design?.logoSrc || '/villagekart_icon.svg',
         hasCtaFrame: currentQR.design?.hasCtaFrame ?? true,
         ctaText: currentQR.design?.ctaText || 'SCAN TO DOWNLOAD',
         campaignTitle: currentQR.name || 'VillagKart Rural Fresh',
@@ -289,18 +291,41 @@ export const DesignStudio = () => {
               </div>
             </div>
 
-            {/* Logo Emblem Switch */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827' }}>VillagKart Center Emblem</div>
-                <div style={{ fontSize: '11px', color: '#6B7280' }}>Safeguarded center badge</div>
+            {/* VillagKart Logo Switch & Controls */}
+            <div style={{ padding: '10px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827' }}>VillagKart Brand Logo</div>
+                  <div style={{ fontSize: '11px', color: '#6B7280' }}>Official logo center overlay</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={designForm.showLogo}
+                  onChange={(e) => setDesignForm({ ...designForm, showLogo: e.target.checked })}
+                  style={{ width: '16px', height: '16px', accentColor: '#00891D', cursor: 'pointer' }}
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={designForm.showLogo}
-                onChange={(e) => setDesignForm({ ...designForm, showLogo: e.target.checked })}
-                style={{ width: '16px', height: '16px', accentColor: '#00891D', cursor: 'pointer' }}
-              />
+
+              {designForm.showLogo && (
+                <div style={{ display: 'flex', gap: '6px', paddingTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDesignForm({ ...designForm, logoSrc: '/villagekart_logo.svg' })}
+                    className={`btn btn-sm ${designForm.logoSrc === '/villagekart_logo.svg' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '11px', padding: '4px 8px', flex: 1 }}
+                  >
+                    Full Logo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDesignForm({ ...designForm, logoSrc: '/villagekart_icon.svg' })}
+                    className={`btn btn-sm ${(!designForm.logoSrc || designForm.logoSrc === '/villagekart_icon.svg') ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '11px', padding: '4px 8px', flex: 1 }}
+                  >
+                    Emblem Icon
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* CTA Frame Toggle & Text */}
@@ -458,6 +483,7 @@ export const DesignStudio = () => {
                 fgColor={designForm.fgColor}
                 bgColor={designForm.bgColor}
                 showLogo={designForm.showLogo}
+                logoSrc={designForm.logoSrc || '/villagekart_icon.svg'}
                 hasCtaFrame={designForm.hasCtaFrame}
                 ctaText={designForm.ctaText}
                 quietZone={designForm.quietZone}

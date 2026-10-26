@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const Templates = () => {
-  const { templates, setTemplates, setActiveScreen, setWizardData, currentRole, showToast } = useQR();
+  const { templates, setTemplates, setActiveScreen, setWizardData, currentRole, showToast, openCreateQRModal } = useQR();
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -37,15 +37,12 @@ export const Templates = () => {
   }, [templates, filterCategory, searchQuery]);
 
   const handleUseTemplate = (tpl) => {
-    setWizardData((prev) => ({
-      ...prev,
+    openCreateQRModal({
       template: tpl.name,
       fgColor: tpl.previewBg || '#00891D',
       name: `${tpl.name} - ${new Date().toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}`,
       type: tpl.permittedQrTypes[0] || 'Campaign',
-    }));
-    setActiveScreen('wizard');
-    showToast(`Loaded template "${tpl.name}" into Design Studio.`);
+    });
   };
 
   const handleCloneTemplate = (tpl) => {

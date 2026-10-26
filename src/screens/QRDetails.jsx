@@ -128,37 +128,8 @@ export const QRDetails = () => {
   };
 
   const handleEdit = () => {
-    setWizardData({
-      name: qr.name,
-      type: qr.type,
-      purpose: qr.purpose || `Strategic distribution for ${qr.name}`,
-      owner: qr.owner,
-      department: qr.department || 'Operations',
-      campaignId: qr.campaignId || 'CMP-001',
-      campaign: qr.campaign || 'Direct Distribution',
-      hubId: qr.hubId || 'HUB-01',
-      village: qr.village || 'Phirangipuram Village',
-      expiryDate: qr.expiryDate || '2026-12-31',
-      redirectCode: qr.destination?.redirectCode || qr.id.toLowerCase(),
-      androidUrl: qr.destination?.androidUrl || '',
-      iosUrl: qr.destination?.iosUrl || '',
-      fallbackUrl: qr.destination?.fallbackUrl || 'https://villagkart.com',
-      routingBehavior: qr.destination?.routingBehavior || 'auto',
-      template: qr.design?.template || 'VillagKart Branded',
-      fgColor: qr.design?.fgColor || '#00891D',
-      bgColor: qr.design?.bgColor || '#FFFFFF',
-      showLogo: qr.design?.showLogo ?? true,
-      hasCtaFrame: qr.design?.hasCtaFrame ?? true,
-      ctaText: qr.design?.ctaText || 'SCAN TO CONNECT',
-      campaignTitle: qr.design?.campaignTitle || qr.name,
-      supportingText: qr.design?.supportingText || 'VillagKart Rural Commerce',
-      errorCorrection: qr.design?.errorCorrection || 'Q',
-      exportWidth: 15,
-      exportHeight: 15,
-      exportUnit: 'cm',
-    });
-    setWizardStep(1);
-    setActiveScreen('wizard');
+    setSelectedQrId(qr.id);
+    setActiveScreen('design-studio');
   };
 
   const handleSaveDestinationVersion = () => {
@@ -190,7 +161,7 @@ export const QRDetails = () => {
                 className="btn btn-secondary btn-sm"
               >
                 <ArrowLeft size={15} />
-                Back to QR Inventory
+                Back to QR Management
               </button>
             </div>
             <div style={{ fontSize: '12.5px', color: '#6B7280' }}>
@@ -353,8 +324,35 @@ export const QRDetails = () => {
               </div>
 
               {currentCategoryQrs.length === 0 ? (
-                <div style={{ padding: '36px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
-                  No QR codes found matching this category filter.
+                <div style={{
+                  padding: '44px 24px',
+                  textAlign: 'center',
+                  background: '#F9FAFB',
+                  borderRadius: '12px',
+                  border: '1px dashed #E5E7EB',
+                  margin: '10px 0',
+                }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    background: categoryFilter === 'changes' ? '#ECFDF5' : '#F3F4F6',
+                    color: categoryFilter === 'changes' ? '#00891D' : '#6B7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 12px auto',
+                  }}>
+                    {categoryFilter === 'changes' ? <CheckCircle2 size={22} color="#00891D" /> : <HelpCircle size={22} />}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', marginBottom: '4px' }}>
+                    {categoryFilter === 'changes' ? '0 Change Requests Pending' : 'No QR Codes Found'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6B7280', maxWidth: '400px', margin: '0 auto' }}>
+                    {categoryFilter === 'changes'
+                      ? 'All active and published QR routing destinations currently satisfy operational compliance standards.'
+                      : 'No QR codes found matching this category filter.'}
+                  </div>
                 </div>
               ) : (
                 <div style={{
@@ -708,7 +706,7 @@ export const QRDetails = () => {
                     "{qr.reviewerComments || 'Reviewer requested adjustments to target destination URL, artwork branding, or campaign attribution parameters.'}"
                   </div>
                   <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px' }}>
-                    Status: <span className="badge badge-changes-requested">Changes Requested</span> · Make updates in Create QR Code and resubmit for approval.
+                    Status: <span className="badge badge-changes-requested">Changes Requested</span> · Make updates in Design Studio and resubmit for approval.
                   </div>
                 </div>
               </div>
@@ -727,7 +725,7 @@ export const QRDetails = () => {
                 }}
               >
                 <Edit3 size={15} />
-                Edit & Resubmit in Create QR Code
+                Edit & Resubmit in Design Studio
               </button>
             </div>
           )}
@@ -787,7 +785,7 @@ export const QRDetails = () => {
                 }}
               >
                 <RotateCw size={15} />
-                Reconfigure in Create QR Code
+                Reconfigure in Design Studio
               </button>
             </div>
           )}
@@ -874,8 +872,27 @@ export const QRDetails = () => {
               <div>Hub: <strong>{qr.hubName || 'Phirangipuram Hub'}</strong></div>
               <div>Owner: <strong>{qr.owner}</strong> ({qr.department})</div>
               <div>Created: <strong>{qr.createdAt || '2026-03-01'}</strong></div>
-              <div>Last Modified: <strong>{qr.lastModified || '2026-03-20'}</strong></div>
-              <div>Expiry: <strong>{qr.expiryDate || 'Unlimited'}</strong></div>
+              <div>
+                Expiry: {qr.expiryDate === 'Never Ending' || !qr.expiryDate || qr.expiryDate === 'Unlimited' ? (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    background: '#F0FDF4',
+                    color: '#15803D',
+                    border: '1px solid #BBF7D0',
+                    borderRadius: '10px',
+                    padding: '1px 6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    marginLeft: '4px',
+                  }}>
+                    ∞ Never Ending
+                  </span>
+                ) : (
+                  <strong>{qr.expiryDate}</strong>
+                )}
+              </div>
             </div>
           </div>
 

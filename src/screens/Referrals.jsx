@@ -10,7 +10,6 @@ import {
   Smartphone,
   CheckCircle2,
   AlertTriangle,
-  ArrowRight,
   Filter,
   Eye,
   Download,
@@ -76,43 +75,6 @@ export const Referrals = () => {
             </p>
           </div>
           <span className="badge badge-active">Anti-Self Referral Active</span>
-        </div>
-
-        {/* Visual Referral Journey Flow (Scan -> Registration -> First Order) */}
-        <div style={{
-          marginTop: '16px',
-          padding: '14px',
-          background: '#E8F5EA',
-          border: '1px solid #C8E6C9',
-          borderRadius: '10px',
-        }}>
-          <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#006B17', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Verified Multi-Stage Referral Journey:
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '8px',
-            fontSize: '12.5px',
-            color: '#111827',
-          }}>
-            <span>1. Scan QR</span>
-            <ArrowRight size={14} color="#00891D" />
-            <span>2. Referral Landing Page</span>
-            <ArrowRight size={14} color="#00891D" />
-            <span>3. App Install / Open</span>
-            <ArrowRight size={14} color="#00891D" />
-            <span>4. Customer Registration</span>
-            <ArrowRight size={14} color="#00891D" />
-            <span>5. Verified First Order</span>
-            <ArrowRight size={14} color="#00891D" />
-            <span style={{ fontWeight: 700, color: '#00891D' }}>6. Incentive Disbursal (₹50)</span>
-          </div>
-          <p style={{ margin: '8px 0 0 0', fontSize: '11.5px', color: '#4B5563' }}>
-            * Business Rule: Scans alone never trigger rewards. Preventing duplicate and self-referral abuse via device IMEI and phone validation.
-          </p>
         </div>
       </div>
 

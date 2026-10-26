@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const Campaigns = () => {
-  const { campaigns, qrCodes, setCampaigns, setActiveScreen, setSelectedQrId, showToast } = useQR();
+  const { campaigns, qrCodes, setCampaigns, setActiveScreen, setSelectedQrId, showToast, openCreateQRModal } = useQR();
   const [selectedCampaign, setSelectedCampaign] = useState(campaigns[0]);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -462,12 +462,20 @@ export const Campaigns = () => {
                   <QrCode size={17} color="#00891D" />
                   Associated QR Codes ({associatedQRs.length})
                 </h3>
-                <button
-                  onClick={() => setActiveScreen('wizard')}
-                  className="btn btn-secondary btn-sm"
-                >
-                  <Plus size={14} /> Add QR to Campaign
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => setActiveScreen('listing')}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <QrCode size={14} /> View QR Management
+                  </button>
+                  <button
+                    onClick={() => openCreateQRModal({ campaignId: selectedCampaign.id, campaign: selectedCampaign.name })}
+                    className="btn btn-primary btn-sm"
+                  >
+                    <Plus size={14} /> Create QR for Campaign
+                  </button>
+                </div>
               </div>
 
               <div className="vk-table-container">

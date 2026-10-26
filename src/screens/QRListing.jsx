@@ -33,6 +33,8 @@ export const QRListing = () => {
     setQrCodes,
     setActiveScreen,
     setSelectedQrId,
+    startNewQRCode,
+    campaigns,
     setWizardData,
     setWizardStep,
     togglePauseQR,
@@ -46,6 +48,9 @@ export const QRListing = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [hubFilter, setHubFilter] = useState('all');
+  const [villageFilter, setVillageFilter] = useState('all');
+  const [campaignFilter, setCampaignFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Pagination State
@@ -75,10 +80,13 @@ export const QRListing = () => {
 
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
       const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      const matchesHub = hubFilter === 'all' || item.hubId === hubFilter || (item.hubName && item.hubName.includes(hubFilter));
+      const matchesVillage = villageFilter === 'all' || (item.village && item.village.includes(villageFilter));
+      const matchesCampaign = campaignFilter === 'all' || item.campaignId === campaignFilter || (item.campaign && item.campaign.includes(campaignFilter));
 
-      return matchesSearch && matchesType && matchesStatus;
+      return matchesSearch && matchesType && matchesStatus && matchesHub && matchesVillage && matchesCampaign;
     });
-  }, [qrCodes, searchQuery, typeFilter, statusFilter, currentRole]);
+  }, [qrCodes, searchQuery, typeFilter, statusFilter, hubFilter, villageFilter, campaignFilter, currentRole]);
 
   // Total pages and sliced data for pagination
   const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
@@ -156,37 +164,8 @@ export const QRListing = () => {
   };
 
   const handleEditQR = (qr) => {
-    setWizardData({
-      name: qr.name,
-      type: qr.type,
-      purpose: qr.purpose || `Strategic distribution for ${qr.name}`,
-      owner: qr.owner,
-      department: qr.department || 'Operations',
-      campaignId: qr.campaignId || 'CMP-001',
-      campaign: qr.campaign || 'Direct Distribution',
-      hubId: qr.hubId || 'HUB-01',
-      village: qr.village || 'Phirangipuram Village',
-      expiryDate: qr.expiryDate || '2026-12-31',
-      redirectCode: qr.destination?.redirectCode || qr.id.toLowerCase(),
-      androidUrl: qr.destination?.androidUrl || '',
-      iosUrl: qr.destination?.iosUrl || '',
-      fallbackUrl: qr.destination?.fallbackUrl || 'https://villagkart.com',
-      routingBehavior: qr.destination?.routingBehavior || 'auto',
-      template: qr.design?.template || 'VillagKart Branded',
-      fgColor: qr.design?.fgColor || '#00891D',
-      bgColor: qr.design?.bgColor || '#FFFFFF',
-      showLogo: qr.design?.showLogo ?? true,
-      hasCtaFrame: qr.design?.hasCtaFrame ?? true,
-      ctaText: qr.design?.ctaText || 'SCAN TO CONNECT',
-      campaignTitle: qr.design?.campaignTitle || qr.name,
-      supportingText: qr.design?.supportingText || 'VillagKart Rural Commerce',
-      errorCorrection: qr.design?.errorCorrection || 'Q',
-      exportWidth: 15,
-      exportHeight: 15,
-      exportUnit: 'cm',
-    });
-    setWizardStep(1);
-    setActiveScreen('wizard');
+    setSelectedQrId(qr.id);
+    setActiveScreen('design-studio');
   };
 
   return (
@@ -195,20 +174,18 @@ export const QRListing = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">QR Code Inventory</h2>
+            <h2 className="vk-card-title">QR Management</h2>
             <p className="vk-card-subtitle">
-              Central catalog for managing dynamic routing, lifecycle states, bulk operations and asset exports
+              Central operations catalog for creating, dynamic routing, lifecycle tracking and asset exports
             </p>
           </div>
           <button
-            onClick={() => {
-              setWizardStep(1);
-              setActiveScreen('wizard');
-            }}
+            onClick={() => startNewQRCode()}
             className="btn btn-primary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <Plus size={15} />
-            Create QR
+            <span>Create QR Code</span>
           </button>
         </div>
       </div>
@@ -265,7 +242,7 @@ export const QRListing = () => {
                 setCurrentPage(1);
               }}
               className="form-control"
-              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
+              style={{ width: '140px', padding: '7px 10px', fontSize: '13px' }}
             >
               <option value="all">All Statuses</option>
               <option value="Active">Active</option>
@@ -276,6 +253,69 @@ export const QRListing = () => {
               <option value="Paused">Paused</option>
               <option value="Expired">Expired</option>
               <option value="Archived">Archived</option>
+            </select>
+          </div>
+
+          {/* Hub / Territory Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Hub / Territory:</label>
+            <select
+              value={hubFilter}
+              onChange={(e) => {
+                setHubFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="form-control"
+              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
+            >
+              <option value="all">Select All</option>
+              <option value="HUB-01">Phirangipuram Hub</option>
+              <option value="HUB-02">Guntur Central Hub</option>
+              <option value="HUB-03">Tenali Rural Hub</option>
+              <option value="HUB-04">Narasaraopet Hub</option>
+              <option value="HUB-05">Bapatla Coastal Hub</option>
+            </select>
+          </div>
+
+          {/* Village Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Village:</label>
+            <select
+              value={villageFilter}
+              onChange={(e) => {
+                setVillageFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="form-control"
+              style={{ width: '140px', padding: '7px 10px', fontSize: '13px' }}
+            >
+              <option value="all">Select All</option>
+              <option value="Phirangipuram">Phirangipuram Village</option>
+              <option value="Prattipadu">Prattipadu Village</option>
+              <option value="Siripuram">Siripuram Village</option>
+              <option value="Tenali">Tenali Rural</option>
+              <option value="Bapatla">Bapatla Coastal</option>
+            </select>
+          </div>
+
+          {/* Campaign Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Campaign:</label>
+            <select
+              value={campaignFilter}
+              onChange={(e) => {
+                setCampaignFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="form-control"
+              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
+            >
+              <option value="all">Select All</option>
+              {campaigns?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -526,9 +566,26 @@ export const QRListing = () => {
 
                       {/* Expiry */}
                       <td>
-                        <div style={{ fontSize: '11.5px', color: '#6B7280' }}>
-                          {qr.expiryDate || 'Unlimited'}
-                        </div>
+                        {qr.expiryDate === 'Never Ending' || !qr.expiryDate || qr.expiryDate === 'Unlimited' ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#F0FDF4',
+                            color: '#15803D',
+                            border: '1px solid #BBF7D0',
+                            borderRadius: '12px',
+                            padding: '2px 8px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                          }}>
+                            ∞ Never Ending
+                          </span>
+                        ) : (
+                          <div style={{ fontSize: '11.5px', color: '#6B7280' }}>
+                            {qr.expiryDate}
+                          </div>
+                        )}
                       </td>
 
                       {/* Scans */}

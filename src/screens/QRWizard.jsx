@@ -450,9 +450,10 @@ export const QRWizard = () => {
                 onChange={(e) => {
                   const sel = INITIAL_CAMPAIGNS.find((c) => c.id === e.target.value);
                   updateData('campaignId', e.target.value);
-                  updateData('campaign', sel ? sel.name : '');
+                  updateData('campaign', sel ? sel.name : 'All Campaigns');
                 }}
               >
+                <option value="all">Select All</option>
                 {INITIAL_CAMPAIGNS.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.id})
@@ -469,6 +470,7 @@ export const QRWizard = () => {
                 value={wizardData.hubId}
                 onChange={(e) => updateData('hubId', e.target.value)}
               >
+                <option value="all">Select All</option>
                 {INITIAL_HUBS.map((h) => (
                   <option key={h.id} value={h.id}>
                     {h.name} ({h.district})
@@ -485,6 +487,7 @@ export const QRWizard = () => {
                 value={wizardData.village}
                 onChange={(e) => updateData('village', e.target.value)}
               >
+                <option value="all">Select All</option>
                 {INITIAL_VILLAGES.map((v) => (
                   <option key={v.id} value={v.name}>
                     {v.name} (Pop: {v.population})
@@ -495,23 +498,62 @@ export const QRWizard = () => {
 
             {/* Start Date and Expiry Date */}
             <div className="form-group">
-              <label className="form-label">Start Date & Expiry Date</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0 }}>Start Date & Expiry Date</label>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#00891D' }}>
+                  <input
+                    type="checkbox"
+                    checked={wizardData.neverEnding || wizardData.expiryDate === 'Never Ending'}
+                    onChange={(e) => {
+                      const isNever = e.target.checked;
+                      updateData('neverEnding', isNever);
+                      updateData('expiryDate', isNever ? 'Never Ending' : '2026-12-31');
+                    }}
+                    style={{ width: '15px', height: '15px', accentColor: '#00891D', cursor: 'pointer' }}
+                  />
+                  <span>Never Ending (No Expiry)</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="date"
                   className="form-control"
                   value={wizardData.startDate || new Date().toISOString().split('T')[0]}
                   onChange={(e) => updateData('startDate', e.target.value)}
                   title="Start Date"
+                  style={{ flex: 1 }}
                 />
-                <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280' }}>to</span>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={wizardData.expiryDate}
-                  onChange={(e) => updateData('expiryDate', e.target.value)}
-                  title="Expiry Date"
-                />
+                <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280', fontSize: '13px', fontWeight: 500 }}>to</span>
+                {(wizardData.neverEnding || wizardData.expiryDate === 'Never Ending') ? (
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '6px',
+                      height: '38px',
+                      color: '#15803D',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                    }}
+                  >
+                    <span>∞ Never Ending</span>
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={wizardData.expiryDate && wizardData.expiryDate !== 'Never Ending' ? wizardData.expiryDate : '2026-12-31'}
+                    onChange={(e) => updateData('expiryDate', e.target.value)}
+                    title="Expiry Date"
+                    style={{ flex: 1 }}
+                  />
+                )}
               </div>
             </div>
 
@@ -698,46 +740,6 @@ export const QRWizard = () => {
                       Test Link
                     </a>
                   )}
-                </div>
-
-                {/* Quick Presets Pills */}
-                <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#6B7280', marginRight: '4px' }}>
-                    Quick Presets:
-                  </span>
-                  {[
-                    { label: '🌾 Seasonal Produce', url: 'https://villagkart.com/seasonal-produce' },
-                    { label: '🛒 Daily Fresh Store', url: 'https://villagkart.com/fresh-store' },
-                    { label: '📝 Feedback Form', url: 'https://villagkart.com/customer-feedback' },
-                    { label: '📺 YouTube Video Demo', url: 'https://youtube.com/watch?v=villagkart-fresh' },
-                  ].map((p, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setWizardData((prev) => ({
-                          ...prev,
-                          fallbackUrl: p.url,
-                          androidUrl: p.url,
-                          iosUrl: p.url,
-                        }));
-                        showToast(`Set destination to ${p.url}`);
-                      }}
-                      style={{
-                        padding: '3px 10px',
-                        background: '#FFFFFF',
-                        border: '1px solid #D1D5DB',
-                        borderRadius: '20px',
-                        fontSize: '11.5px',
-                        fontWeight: 500,
-                        color: '#374151',
-                        cursor: 'pointer',
-                        transition: 'all 0.1s ease',
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             ) : (
@@ -1583,21 +1585,13 @@ export const QRWizard = () => {
             />
           </div>
 
-          {/* Buttons: Preview, Generate Assets, Download, Back to Design */}
+          {/* Buttons: Download, Back to Design, Continue to Review */}
           <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button onClick={() => setWizardStep(3)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
               Back to Design
             </button>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => showToast('Artwork preview rendered at 300 DPI.')} className="btn btn-secondary btn-sm">
-                <Eye size={14} />
-                Preview
-              </button>
-              <button onClick={() => showToast('Assets generated successfully across all formats.')} className="btn btn-secondary btn-sm">
-                <Sparkles size={14} />
-                Generate Assets
-              </button>
               <button onClick={() => handleDownload('PNG')} className="btn btn-secondary btn-sm">
                 <Download size={14} />
                 Download
@@ -1620,26 +1614,31 @@ export const QRWizard = () => {
             <div>
               <h2 className="vk-card-title">Review & Publish</h2>
               <p className="vk-card-subtitle">
-                System validation checklist before QR routing is published live to edge DNS
+                Pre-publish configuration review. Administrative verification and access permissions will be conducted after publishing.
               </p>
             </div>
-            <span className="badge badge-active">Validation 6/6 Passed</span>
+            <span className="badge badge-active">Configuration Ready (4/4)</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
-            {/* Checklist items (All 6 spec items) */}
+            {/* Optimal 4-Point Configuration Checklist */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {[
-                { title: '1. Basic information complete', desc: `Name: "${wizardData.name}", Type: ${wizardData.type}, Owner: ${wizardData.owner}` },
-                { title: '2. Destinations validated', desc: `Fallback: ${wizardData.fallbackUrl} (HTTPS & SSL validated)` },
-                { title: '3. Campaign attribution configured', desc: `Campaign: ${wizardData.campaign}, Hub: ${wizardData.hubId}, Village: ${wizardData.village}` },
-                { title: '4. QR artwork passes validation', desc: 'Decoding verified, contrast score 98/100, quiet-zone 4 modules' },
-                { title: '5. User permissions verified', desc: `Authorized active role: ${currentRole}` },
                 {
-                  title: '6. Approval requirements satisfied',
-                  desc: isApprovalRequired
-                    ? `Requires managerial approval (Role: ${currentRole}, QR Type: ${wizardData.type})`
-                    : 'System rules satisfy immediate publish criteria (No prior block)',
+                  title: '1. Basic Information',
+                  desc: `Name: "${wizardData.name || 'Untitled QR'}", Type: ${wizardData.type || 'Campaign'}, Owner: ${wizardData.owner || 'Anita Rao'} · Timeline: ${wizardData.startDate || 'Immediate'} to ${wizardData.expiryDate || 'Never Ending'}`,
+                },
+                {
+                  title: '2. Destination Routing',
+                  desc: `Target URL: ${wizardData.fallbackUrl || 'https://villagkart.com'} (Valid destination)`,
+                },
+                {
+                  title: '3. Territory & Campaign Attribution',
+                  desc: `Campaign: ${wizardData.campaign || 'Direct Routing'}, Hub: ${wizardData.hubId || 'HUB-01'}, Village: ${wizardData.village || 'Phirangipuram Village'}`,
+                },
+                {
+                  title: '4. QR Artwork & Packaging',
+                  desc: `VillagKart Emblem embedded, Color: ${wizardData.fgColor || '#00891D'}, Error Correction: ${wizardData.errorCorrection || 'Q'}`,
                 },
               ].map((c, i) => (
                 <div
@@ -1648,7 +1647,7 @@ export const QRWizard = () => {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '12px',
-                    padding: '12px 14px',
+                    padding: '13px 15px',
                     background: '#FFFFFF',
                     border: '1px solid #E5E7EB',
                     borderRadius: '8px',
@@ -1661,6 +1660,29 @@ export const QRWizard = () => {
                   </div>
                 </div>
               ))}
+
+              {/* Informational workflow notice about post-publish verification and permissions */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '13px 15px',
+                  background: '#F8FAFC',
+                  border: '1px dashed #CBD5E1',
+                  borderRadius: '8px',
+                }}
+              >
+                <ShieldCheck size={18} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#1E293B' }}>
+                    Post-Publish Verification & Permissions
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px', lineHeight: 1.4 }}>
+                    Once created and published, this QR code will automatically move to <strong>Permissions & Approvals</strong> where administrative verification is conducted and live permissions are granted.
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Summary Card & Actions */}
@@ -1693,7 +1715,7 @@ export const QRWizard = () => {
                 https://qr.villagkart.com/{wizardData.redirectCode}
               </div>
 
-              {/* Workflow Actions: Generate & Submit for Approval */}
+              {/* Workflow Actions: Publish QR Code */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   onClick={() => publishWizardQR()}
@@ -1711,7 +1733,7 @@ export const QRWizard = () => {
                   }}
                 >
                   <Send size={16} />
-                  Generate & Submit for Approval
+                  Publish QR Code
                 </button>
 
                 <div style={{
@@ -1722,8 +1744,9 @@ export const QRWizard = () => {
                   fontSize: '11.5px',
                   color: '#166534',
                   lineHeight: 1.4,
+                  textAlign: 'left',
                 }}>
-                  🔒 <strong>Governance Workflow:</strong> Once generated, this QR code transitions to <strong>Permissions & Approvals</strong> for pre-flight administrative review before live routing.
+                  ℹ️ <strong>Workflow:</strong> This creates and publishes your QR code config. Administrative verification and live permissions will be granted post-publish.
                 </div>
 
                 <button

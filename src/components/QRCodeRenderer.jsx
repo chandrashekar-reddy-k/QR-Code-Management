@@ -12,13 +12,27 @@ export const QRCodeRenderer = ({
   campaignTitle = '',
   supportingText = '',
   showLogo = true,
+  logoSrc = '/villagekart_icon.svg',
   className = '',
   onDataUrlGenerated = null,
 }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
+    let isCancelled = false;
     if (!canvasRef.current) return;
+
+    // Helper to load logo image
+    const loadLogo = () => {
+      if (!showLogo) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = logoSrc || '/villagekart_icon.svg';
+      });
+    };
 
     // Render core QR onto an offscreen canvas first
     const qrCanvas = document.createElement('canvas');
@@ -34,11 +48,18 @@ export const QRCodeRenderer = ({
         },
         errorCorrectionLevel: errorCorrection || 'Q',
       },
-      (error) => {
+      async (error) => {
         if (error) {
           console.error('QR generation error:', error);
           return;
         }
+        if (isCancelled || !canvasRef.current) return;
+
+        let logoImg = null;
+        if (showLogo) {
+          logoImg = await loadLogo();
+        }
+        if (isCancelled || !canvasRef.current) return;
 
         const mainCanvas = canvasRef.current;
         const ctx = mainCanvas.getContext('2d');
@@ -57,13 +78,24 @@ export const QRCodeRenderer = ({
 
         // Draw outer card/frame background
         ctx.fillStyle = bgColor || '#FFFFFF';
-        ctx.roundRect ? ctx.roundRect(0, 0, totalWidth, totalHeight, 10) : ctx.rect(0, 0, totalWidth, totalHeight);
-        ctx.fill();
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(0, 0, totalWidth, totalHeight, 10);
+          ctx.fill();
+        } else {
+          ctx.fillRect(0, 0, totalWidth, totalHeight);
+        }
 
         // Outer border
         ctx.strokeStyle = '#E5E7EB';
         ctx.lineWidth = 1.5;
-        ctx.stroke();
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(0, 0, totalWidth, totalHeight, 10);
+          ctx.stroke();
+        } else {
+          ctx.strokeRect(0, 0, totalWidth, totalHeight);
+        }
 
         // Draw Top CTA Bar
         if (hasCtaFrame && ctaText) {
@@ -89,26 +121,78 @@ export const QRCodeRenderer = ({
 
         // Center Logo overlay if showLogo is true
         if (showLogo) {
-          const logoSize = size * 0.22;
-          const logoX = (totalWidth - logoSize) / 2;
-          const logoY = qrY + (size - logoSize) / 2;
+          const centerX = totalWidth / 2;
+          const centerY = qrY + size / 2;
 
-          // Logo Background badge (circular protection)
-          ctx.fillStyle = '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(totalWidth / 2, qrY + size / 2, logoSize * 0.65, 0, Math.PI * 2);
-          ctx.fill();
+          if (logoImg) {
+            const naturalW = logoImg.naturalWidth || logoImg.width || 48;
+            const naturalH = logoImg.naturalHeight || logoImg.height || 48;
+            const aspect = naturalW / naturalH;
 
-          ctx.strokeStyle = fgColor || '#00891D';
-          ctx.lineWidth = 2;
-          ctx.stroke();
+            const isWide = aspect > 1.4;
 
-          // VillagKart "V" brand emblem
-          ctx.fillStyle = fgColor || '#00891D';
-          ctx.font = `bold ${Math.round(logoSize * 0.65)}px "Segoe UI", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('V', totalWidth / 2, qrY + size / 2);
+            if (isWide) {
+              // Proportional white pill for wide wordmark logos
+              const badgeW = Math.round(size * 0.38);
+              const badgeH = Math.round(badgeW / aspect + 10);
+              const badgeR = Math.round(badgeH / 2);
+              const badgeX = Math.round(centerX - badgeW / 2);
+              const badgeY = Math.round(centerY - badgeH / 2);
+
+              ctx.fillStyle = '#FFFFFF';
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(badgeX, badgeY, badgeW, badgeH, badgeR);
+              } else {
+                ctx.rect(badgeX, badgeY, badgeW, badgeH);
+              }
+              ctx.fill();
+
+              const maxW = badgeW - 10;
+              const maxH = badgeH - 6;
+              let drawW = maxW;
+              let drawH = drawW / aspect;
+              if (drawH > maxH) {
+                drawH = maxH;
+                drawW = drawH * aspect;
+              }
+              const drawX = Math.round(centerX - drawW / 2);
+              const drawY = Math.round(centerY - drawH / 2);
+              ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
+            } else {
+              // White circular empty space for clean quiet zone & high visibility (circle size preserved)
+              const circleRadius = Math.round(size * 0.175);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+              ctx.fill();
+
+              // Increased logo size for bold brand visibility
+              const maxDim = Math.round(size * 0.30);
+              let drawW = maxDim;
+              let drawH = drawW / aspect;
+              if (drawH > maxDim) {
+                drawH = maxDim;
+                drawW = drawH * aspect;
+              }
+              const drawX = Math.round(centerX - drawW / 2);
+              const drawY = Math.round(centerY - drawH / 2);
+              ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
+            }
+          } else {
+            // Clean VillagKart fallback emblem badge with white circular empty space
+            const circleRadius = Math.round(size * 0.175);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = fgColor || '#00891D';
+            ctx.font = `bold ${Math.round(circleRadius * 0.85)}px "Segoe UI", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('VK', centerX, centerY);
+          }
         }
 
         // Draw Bottom Supporting Text if available
@@ -126,6 +210,10 @@ export const QRCodeRenderer = ({
         }
       }
     );
+
+    return () => {
+      isCancelled = true;
+    };
   }, [
     value,
     fgColor,
@@ -137,6 +225,7 @@ export const QRCodeRenderer = ({
     campaignTitle,
     supportingText,
     showLogo,
+    logoSrc,
     onDataUrlGenerated,
   ]);
 
