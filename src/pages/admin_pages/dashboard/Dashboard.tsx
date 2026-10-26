@@ -45,101 +45,40 @@ const Dashboard = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalOrdersCount, setTotalOrdersCount] = useState(100);
 
-  // Dynamic KPI states
-  const [totalCustomers, setTotalCustomers] = useState<number>(40689);
-  const [totalOrderCount, setTotalOrderCount] = useState<number>(10293);
-  const [totalSales, setTotalSales] = useState<number>(89000);
-  const [totalProductsCount, setTotalProductsCount] = useState<number>(2040);
+  // Filter states
+  const [filterPeriod, setFilterPeriod] = useState<string>("All Time");
 
-  const [todayOrders, setTodayOrders] = useState<number>(250);
-  const [todayRevenue, setTodayRevenue] = useState<number>(150);
-  const [activeSellers, setActiveSellers] = useState<string>("₹86.50");
-  const [pendingOrders, setPendingOrders] = useState<number>(320);
-  const [avgOrderValue, setAvgOrderValue] = useState<string>("1,250");
-  const [returnRequests, setReturnRequests] = useState<number>(430);
-  const [deliveryBoysPercent, setDeliveryBoysPercent] = useState<number>(92);
-  const [categoriesPercent, setCategoriesPercent] = useState<number>(18);
+  // Dynamic KPI states
+  const [totalCustomers, setTotalCustomers] = useState<number>(0);
+  const [totalOrderCount, setTotalOrderCount] = useState<number>(0);
+  const [totalSales, setTotalSales] = useState<number>(0);
+  const [totalProductsCount, setTotalProductsCount] = useState<number>(0);
+
+  const [todayOrders, setTodayOrders] = useState<number>(0);
+  const [todayOrdersTrend, setTodayOrdersTrend] = useState<number>(0);
+  const [todayRevenue, setTodayRevenue] = useState<number>(0);
+  const [todayRevenueTrend, setTodayRevenueTrend] = useState<number>(0);
+  const [activeSellers, setActiveSellers] = useState<string>("0");
+  const [pendingOrders, setPendingOrders] = useState<number>(0);
+  const [avgOrderValue, setAvgOrderValue] = useState<string>("0");
+  const [returnRequests, setReturnRequests] = useState<number>(0);
+  const [deliveryBoysPercent, setDeliveryBoysPercent] = useState<number>(100);
+  const [categoriesPercent, setCategoriesPercent] = useState<number>(0);
 
   // Chart states
   const [timeFilter, setTimeFilter] = useState<
-    "hourly" | "daily" | "weekly" | "monthly"
+    "hourly" | "daily" | "weekly" | "monthly" | "yearly"
   >("weekly");
   const [deliveryFilter, setDeliveryFilter] = useState<string>("all");
   const [ordersChartData, setOrdersChartData] = useState<any[]>([]);
-  const [totalOrders, setTotalOrders] = useState<number>(38);
+  const [totalOrders, setTotalOrders] = useState<number>(0);
   const [showBusinessSettings, setShowBusinessSettings] = useState(false);
-
-
-
-  const mockOrderStatusData = [
-    { name: "Delivered", value: 45, color: "#00891D" },
-    { name: "Cancelled", value: 25, color: "#FF0000" },
-    { name: "Processing", value: 20, color: "#F59E0B" },
-    { name: "Pending", value: 10, color: "#EF5A06" },
-  ];
-
-  // Orders chart data for October
-  const mockOrdersChartData = [
-    { date: "01 OCT", orders: 1, revenue: 4 },
-    { date: "06 OCT", orders: 2, revenue: 4.5 },
-    { date: "11 OCT", orders: 3, revenue: 5.5 },
-    { date: "16 OCT", orders: 2.5, revenue: 4.8 },
-    { date: "21 OCT", orders: 3, revenue: 5 },
-    { date: "26 OCT", orders: 2.2, revenue: 4.6 },
-    { date: "31 OCT", orders: 2, revenue: 4.5 },
-  ];
-
-  const mockRecentOrders = [
-    {
-      id: 1,
-      user: "User",
-      phone: "9087636388",
-      deliveryAddress: "xyz colony,xyz pincode.....",
-      paymentMethod: "UPI",
-      deliveryPartner: "",
-      status: "New Order",
-      dateTime: "12-11-2025, 10:00 AM",
-    },
-    {
-      id: 2,
-      user: "User",
-      phone: "9087636388",
-      deliveryAddress: "xyz colony,xyz pincode....",
-      paymentMethod: "COD",
-      deliveryPartner: "John",
-      status: "Delivered",
-      dateTime: "12-11-2025, 10:00 AM",
-    },
-    {
-      id: 3,
-      user: "User",
-      phone: "9087636388",
-      deliveryAddress: "xyz colony,xyz pincode.....",
-      paymentMethod: "UPI",
-      deliveryPartner: "John",
-      status: "Shipped",
-      dateTime: "12-11-2025, 10:00 AM",
-    },
-    {
-      id: 4,
-      user: "User",
-      phone: "9087636388",
-      deliveryAddress: "xyz colony,xyz pincode.....",
-      paymentMethod: "UPI",
-      deliveryPartner: "John",
-      status: "Packed",
-      dateTime: "12-11-2025, 10:00 AM",
-    },
-  ];
-
 
   useEffect(() => {
     fetchDashboardData();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, filterPeriod, timeFilter, deliveryFilter]);
 
   // Open Business Settings automatically based on login data flag `categoriesPresent`
-  // If categoriesPresent === true  -> don't show popup
-  // If categoriesPresent === false -> show popup
   useEffect(() => {
     const raw = localStorage.getItem("user");
 
@@ -147,13 +86,10 @@ const Dashboard = () => {
 
     try {
       const loginData = JSON.parse(raw);
-
       const alreadyShown = localStorage.getItem("businessSettingsShown");
 
       if (loginData?.categoriesPresent === false && !alreadyShown) {
         setShowBusinessSettings(true);
-
-        // mark as shown
         localStorage.setItem("businessSettingsShown", "true");
       }
     } catch (error) {
@@ -165,66 +101,52 @@ const Dashboard = () => {
     try {
       setLoading(true);
 
-      // 1. Fetch warehouse stats
+      // Map UI filter to API param
+      let periodParam = "all";
+      if (filterPeriod === "Today") periodParam = "today";
+      else if (filterPeriod === "This Week") periodParam = "week";
+      else if (filterPeriod === "This Month") periodParam = "month";
+      else if (filterPeriod === "This Year") periodParam = "year";
+
+      // 1. Fetch warehouse stats with timeFilter, deliveryFilter, and period
       let stats: any = {};
       try {
-        const statsRes = await fetchData<any>("partner/orders/warehouse-stats", "GET");
+        const statsRes = await fetchData<any>(
+          `partner/orders/warehouse-stats?period=${periodParam}&timeFilter=${timeFilter}&deliveryFilter=${deliveryFilter}`,
+          "GET"
+        );
         if (statsRes?.data) {
           stats = statsRes.data;
           setTodayOrders(stats.todayOrders ?? 0);
+          setTodayOrdersTrend(stats.todayOrdersTrend ?? 0);
           setPendingOrders(stats.pending ?? 0);
-          setDeliveryBoysPercent(stats.slaSuccessRate ? Math.round(stats.slaSuccessRate) : 100);
+          setDeliveryBoysPercent(stats.slaSuccessRate ? Math.round(stats.slaSuccessRate) : 98);
           setTodayRevenue(stats.todayRevenue ?? 0);
-          setAvgOrderValue(stats.avgOrderValue ? stats.avgOrderValue.toFixed(2) : "0");
+          setTodayRevenueTrend(stats.todayRevenueTrend ?? 0);
+          setAvgOrderValue(stats.avgOrderValue ? Number(stats.avgOrderValue).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : "0");
           setTotalCustomers(stats.totalCustomers ?? 0);
           setTotalSales(stats.totalSales ?? 0);
 
-          // Map new partner-specific stats
+          // Map partner-specific stats
           setTotalOrderCount(stats.totalOrders ?? 0);
           setTotalProductsCount(stats.totalProducts ?? 0);
           setReturnRequests(stats.returnRequests ?? 0);
           setCategoriesPercent(stats.categoriesPercent ? Math.round(stats.categoriesPercent) : 0);
-          setActiveSellers(stats.activeSellers !== undefined ? `₹${stats.activeSellers.toFixed(2)}` : "₹0.00");
+          setActiveSellers(stats.activeSellers !== undefined ? String(stats.activeSellers) : "0");
+
           if (stats.chartData && stats.chartData.length > 0) {
             setOrdersChartData(stats.chartData);
           } else {
-            setOrdersChartData(mockOrdersChartData);
+            setOrdersChartData([]);
           }
-        }
-      } catch (err) {
-        console.error("Failed to fetch warehouse stats:", err);
-      }
+          setTotalOrders(stats.totalOrders ?? 0);
 
-      // 2. Fetch recent orders
-      let orders: any[] = [];
-      try {
-        const ordersRes = await fetchData<any>(`partner/orders?page=${currentPage}&limit=${itemsPerPage}&view=shopkeeper`, "GET");
-        if (ordersRes?.data?.orders) {
-          orders = ordersRes.data.orders;
-          const totalOrdersFromRes = ordersRes.pagination?.total !== undefined ? ordersRes.pagination.total : orders.length;
-          setTotalOrders(totalOrdersFromRes);
-          setTotalOrdersCount(totalOrdersFromRes);
-          setTotalOrderCount(totalOrdersFromRes);
-
-          // Map recent orders
-          const mappedOrders = orders.map((o: any, idx: number) => ({
-            id: o.orderNumber || o.id || idx + 1,
-            user: o.consumer?.name || "Customer",
-            phone: o.consumer?.phone || "-",
-            deliveryAddress: o.address ? `${o.address.line1 || ""}, ${o.address.city || ""}, ${o.address.pincode || ""}` : "-",
-            paymentMethod: o.payment?.method || "-",
-            deliveryPartner: o.assignedShopkeeper?.name || "-",
-            status: o.status === "CONFIRMED" ? "New Order" : o.status === "PROCESSING" ? "Packed" : o.status === "READY_FOR_PICKUP" ? "Shipped" : o.status === "DELIVERED" ? "Delivered" : o.status,
-            dateTime: o.createdAt ? new Date(o.createdAt).toLocaleString() : "12-11-2025, 10:00 AM",
-          }));
-          setRecentOrders(mappedOrders);
-
-          // Calculate dynamic orderStatusData from countByStatus if available
-          if (ordersRes.data.statusCounts) {
-            const counts = ordersRes.data.statusCounts;
+          // Calculate status donut data directly from backend status counts
+          if (stats.statusCounts) {
+            const counts = stats.statusCounts;
             const delivered = counts.DELIVERED || 0;
             const cancelled = counts.CANCELLED || 0;
-            const processing = (counts.PROCESSING || 0) + (counts.ACCEPTED || 0);
+            const processing = (counts.PROCESSING || 0) + (counts.READY_FOR_PICKUP || 0);
             const pending = (counts.PENDING || 0) + (counts.PLACED || 0) + (counts.CONFIRMED || 0);
             const total = delivered + cancelled + processing + pending;
 
@@ -235,23 +157,46 @@ const Dashboard = () => {
                 { name: "Processing", value: Math.round((processing / total) * 100), color: "#F59E0B" },
                 { name: "Pending", value: Math.round((pending / total) * 100), color: "#EF5A06" },
               ]);
-            } else {
-              setOrderStatusData(mockOrderStatusData);
             }
-          } else {
-            setOrderStatusData(mockOrderStatusData);
           }
+        }
+      } catch (err) {
+        console.error("Failed to fetch warehouse stats:", err);
+      }
+
+      // 2. Fetch recent orders filtered by active period
+      let orders: any[] = [];
+      try {
+        const ordersRes = await fetchData<any>(
+          `partner/orders?page=${currentPage}&limit=${itemsPerPage}&view=shopkeeper&period=${periodParam}`,
+          "GET"
+        );
+        if (ordersRes?.data?.orders) {
+          orders = ordersRes.data.orders;
+          const totalOrdersFromRes = ordersRes.pagination?.total !== undefined ? ordersRes.pagination.total : orders.length;
+          setTotalOrdersCount(totalOrdersFromRes);
+
+          // Map recent orders
+          const mappedOrders = orders.map((o: any, idx: number) => ({
+            id: o.orderNumber || o.id || idx + 1,
+            user: o.consumer?.name || "Customer",
+            phone: o.consumer?.phone || "-",
+            deliveryAddress: o.address ? `${o.address.line1 || ""}, ${o.address.city || ""}, ${o.address.pincode || ""}` : (o.orderType === "POS" ? "POS Walk-in Store" : "Standard Delivery"),
+            paymentMethod: o.payment?.method || o.paymentMode || "COD",
+            deliveryPartner: o.assignedShopkeeper?.name || (o.orderType === "POS" ? "POS Counter" : "-"),
+            status: o.status === "CONFIRMED" ? "New Order" : o.status === "PROCESSING" ? "Packed" : o.status === "READY_FOR_PICKUP" ? "Shipped" : o.status === "DELIVERED" ? "Delivered" : o.status,
+            dateTime: o.createdAt ? new Date(o.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-",
+          }));
+          setRecentOrders(mappedOrders);
         } else {
-          setRecentOrders(mockRecentOrders);
-          setOrderStatusData(mockOrderStatusData);
+          setRecentOrders([]);
         }
       } catch (err) {
         console.error("Failed to fetch recent orders:", err);
-        setRecentOrders(mockRecentOrders);
-        setOrderStatusData(mockOrderStatusData);
+        setRecentOrders([]);
       }
 
-      // 3. Fetch products list count (fallback if warehouse stats doesn't return it)
+      // 3. Fallback product count if not present
       if (stats.totalProducts === undefined) {
         try {
           const productsRes = await fetchData<any>("productmanagement/product?page=1&limit=1", "GET");
@@ -265,12 +210,6 @@ const Dashboard = () => {
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      setOrderStatusData(mockOrderStatusData);
-      setRecentOrders(mockRecentOrders);
-      if (!ordersChartData || ordersChartData.length === 0) {
-        setOrdersChartData(mockOrdersChartData);
-      }
-      setTotalOrders(0);
     } finally {
       setLoading(false);
     }
@@ -346,11 +285,8 @@ const Dashboard = () => {
                   />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
-                <TrendingUp size={15} className="text-green-600" />
-                <span className="text-green-600">8.5%</span>
-                <span className="text-gray-600">
-                  Up from yesterday
-                </span>
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                <span className="text-gray-600">Active registered consumers</span>
               </span>
             </div>
 
@@ -361,7 +297,7 @@ const Dashboard = () => {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-gray-600 mb-2">
-                    Total Order
+                    Total Orders
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
                     {totalOrderCount.toLocaleString()}
@@ -374,9 +310,8 @@ const Dashboard = () => {
                   />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
-                <TrendingUp size={15} className="text-green-600" />
-                <span className="text-green-600">1.3%</span>
-                <span className="text-gray-600">Up from past week</span>
+                <span className="text-orange-600 font-semibold">{pendingOrders}</span>
+                <span className="text-gray-600">orders in pipeline</span>
               </span>
             </div>
 
@@ -390,7 +325,7 @@ const Dashboard = () => {
                     Total Sales
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    ₹{totalSales.toLocaleString()}
+                    ₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <IconWrapper
@@ -400,11 +335,8 @@ const Dashboard = () => {
                   />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
-                <TrendingDown size={15} className="text-red-600" />
-                <span className="text-red-600">4.3%</span>
-                <span className="text-gray-600">
-                  Down from yesterday
-                </span>
+                <span className="text-green-600 font-semibold">Delivered</span>
+                <span className="text-gray-600">fulfilled orders total</span>
               </span>
             </div>
 
@@ -428,11 +360,8 @@ const Dashboard = () => {
                   />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
-                <TrendingUp size={15} className="text-green-600" />
-                <span className="text-green-600">1.8%</span>
-                <span className="text-gray-600">
-                  Up from yesterday
-                </span>
+                <span className="text-purple-600 font-semibold">Active catalog</span>
+                <span className="text-gray-600">items in store</span>
               </span>
             </div>
           </div>
@@ -444,14 +373,20 @@ const Dashboard = () => {
               <label className="text-xs sm:text-sm font-medium text-gray-700">
                 Filter By:
               </label>
-              <select className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 w-full sm:w-auto">
-                <option>All Time</option>
-                <option>Today</option>
-                <option>This Week</option>
-                <option>This Month</option>
-                <option>This Year</option>
+              <select
+                value={filterPeriod}
+                onChange={(e) => setFilterPeriod(e.target.value)}
+                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 w-full sm:w-auto"
+              >
+                <option value="All Time">All Time</option>
+                <option value="Today">Today</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="This Year">This Year</option>
               </select>
-            </div>             {/* Additional KPI Cards - Second Section */}
+            </div>
+
+            {/* Additional KPI Cards - Second Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-full mb-4 sm:mb-6">
               <div
                 className={SECONDARY_KPI_CARD_CLASSES}
@@ -460,7 +395,11 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-[11px] font-medium text-gray-600 mb-2">
-                      Today's Orders
+                      {filterPeriod === "Today" ? "Today's Orders" :
+                       filterPeriod === "This Week" ? "This Week's Orders" :
+                       filterPeriod === "This Month" ? "This Month's Orders" :
+                       filterPeriod === "This Year" ? "This Year's Orders" :
+                       "Total Orders"}
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
                       {todayOrders.toLocaleString()}
@@ -473,11 +412,31 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingUp size={13} className="text-green-600" />
-                  <span className="text-green-600">3.2%</span>
-                  <span className="text-gray-600">
-                    Up from yesterday
-                  </span>
+                  {todayOrdersTrend >= 0 ? (
+                    <>
+                      <TrendingUp size={13} className="text-green-600" />
+                      <span className="text-green-600">{Math.abs(todayOrdersTrend)}%</span>
+                      <span className="text-gray-600">
+                        {filterPeriod === "Today" ? "vs yesterday" :
+                         filterPeriod === "This Week" ? "vs last week" :
+                         filterPeriod === "This Month" ? "vs last month" :
+                         filterPeriod === "This Year" ? "vs last year" :
+                         "pipeline active"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown size={13} className="text-red-600" />
+                      <span className="text-red-600">{Math.abs(todayOrdersTrend)}%</span>
+                      <span className="text-gray-600">
+                        {filterPeriod === "Today" ? "vs yesterday" :
+                         filterPeriod === "This Week" ? "vs last week" :
+                         filterPeriod === "This Month" ? "vs last month" :
+                         filterPeriod === "This Year" ? "vs last year" :
+                         "pipeline active"}
+                      </span>
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -488,10 +447,14 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-[11px] font-medium text-gray-600 mb-2">
-                      Today's Revenue
+                      {filterPeriod === "Today" ? "Today's Revenue" :
+                       filterPeriod === "This Week" ? "This Week's Revenue" :
+                       filterPeriod === "This Month" ? "This Month's Revenue" :
+                       filterPeriod === "This Year" ? "This Year's Revenue" :
+                       "Total Revenue"}
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      ₹{todayRevenue.toLocaleString()}
+                      ₹{todayRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <IconWrapper
@@ -501,11 +464,31 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingDown size={13} className="text-red-600" />
-                  <span className="text-red-600">2.0%</span>
-                  <span className="text-gray-600">
-                    Down from past week
-                  </span>
+                  {todayRevenueTrend >= 0 ? (
+                    <>
+                      <TrendingUp size={13} className="text-green-600" />
+                      <span className="text-green-600">{Math.abs(todayRevenueTrend)}%</span>
+                      <span className="text-gray-600">
+                        {filterPeriod === "Today" ? "vs yesterday" :
+                         filterPeriod === "This Week" ? "vs last week" :
+                         filterPeriod === "This Month" ? "vs last month" :
+                         filterPeriod === "This Year" ? "vs last year" :
+                         "period fulfilled"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown size={13} className="text-red-600" />
+                      <span className="text-red-600">{Math.abs(todayRevenueTrend)}%</span>
+                      <span className="text-gray-600">
+                        {filterPeriod === "Today" ? "vs yesterday" :
+                         filterPeriod === "This Week" ? "vs last week" :
+                         filterPeriod === "This Month" ? "vs last month" :
+                         filterPeriod === "This Year" ? "vs last year" :
+                         "period fulfilled"}
+                      </span>
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -516,7 +499,7 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-[11px] font-medium text-gray-600 mb-2">
-                      Active Sellers
+                      Active Stores / Sellers
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
                       {activeSellers}
@@ -529,11 +512,8 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingDown size={13} className="text-red-600" />
-                  <span className="text-red-600">0.5%</span>
-                  <span className="text-gray-600">
-                    Down from yesterday
-                  </span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                  <span className="text-gray-600">Live operational locations</span>
                 </span>
               </div>
 
@@ -557,11 +537,8 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingUp size={13} className="text-green-600" />
-                  <span className="text-green-600">5.1%</span>
-                  <span className="text-gray-600">
-                    Up from yesterday
-                  </span>
+                  <span className="text-orange-600 font-semibold">{pendingOrders}</span>
+                  <span className="text-gray-600">awaiting pickup/fulfillment</span>
                 </span>
               </div>
             </div>
@@ -578,7 +555,7 @@ const Dashboard = () => {
                       Average Order Value
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      {avgOrderValue}
+                      ₹{avgOrderValue}
                     </p>
                   </div>
                   <IconWrapper
@@ -588,11 +565,8 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingUp size={13} className="text-green-600" />
-                  <span className="text-green-600">10%</span>
-                  <span className="text-gray-600">
-                    Up from yesterday
-                  </span>
+                  <span className="text-purple-600 font-semibold">Avg basket</span>
+                  <span className="text-gray-600">per placed order</span>
                 </span>
               </div>
 
@@ -616,11 +590,10 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingUp size={13} className="text-green-600" />
-                  <span className="text-green-600">15%</span>
-                  <span className="text-gray-600">
-                    Up from past week
+                  <span className={returnRequests > 0 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold"}>
+                    {returnRequests === 0 ? "0 returns" : `${returnRequests} recorded`}
                   </span>
+                  <span className="text-gray-600">customer returns</span>
                 </span>
               </div>
 
@@ -631,7 +604,7 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-[11px] font-medium text-gray-600 mb-2">
-                      Delivery Boys
+                      Delivery SLA Rate
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
                       {deliveryBoysPercent}%
@@ -644,11 +617,8 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingDown size={13} className="text-red-600" />
-                  <span className="text-red-600">1%</span>
-                  <span className="text-gray-600">
-                    Down from yesterday
-                  </span>
+                  <span className="text-blue-600 font-semibold">On-time rate</span>
+                  <span className="text-gray-600">dispatch compliance</span>
                 </span>
               </div>
 
@@ -659,7 +629,7 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-[11px] font-medium text-gray-600 mb-2">
-                      Categories
+                      Active Categories
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
                       {categoriesPercent}%
@@ -672,11 +642,8 @@ const Dashboard = () => {
                   />
                 </div>
                 <span className="text-[11px] font-medium flex items-center gap-1">
-                  <TrendingUp size={13} className="text-green-600" />
-                  <span className="text-green-600">2%</span>
-                  <span className="text-gray-600">
-                    Down from yesterday
-                  </span>
+                  <span className="text-pink-600 font-semibold">Enabled</span>
+                  <span className="text-gray-600">in warehouse catalog</span>
                 </span>
               </div>
             </div>
@@ -692,7 +659,7 @@ const Dashboard = () => {
                     Orders
                   </h2>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {totalOrders}
+                    {totalOrders.toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -733,6 +700,15 @@ const Dashboard = () => {
                     >
                       Monthly
                     </button>
+                    <button
+                      onClick={() => setTimeFilter("yearly")}
+                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${timeFilter === "yearly"
+                          ? "bg-orange-500 text-white"
+                          : "text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        }`}
+                    >
+                      Yearly
+                    </button>
                   </div>
                   <select
                     value={deliveryFilter}
@@ -746,7 +722,11 @@ const Dashboard = () => {
                 </div>
               </div>
               <p className="text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
-                Compare to: 01 Oct-30 Oct 2025
+                {timeFilter === "hourly" ? "Today's 24-Hour Activity" :
+                 timeFilter === "daily" ? "Last 30 Days Activity Trends" :
+                 timeFilter === "weekly" ? "Last 12 Weeks Activity Trends" :
+                 timeFilter === "monthly" ? "Last 12 Months Activity Trends" :
+                 "Last 5 Years Activity Trends"} (Live {deliveryFilter === "all" ? "All Orders" : deliveryFilter === "delivered" ? "Delivered Orders" : "Pending Orders"} & Revenue)
               </p>
               <div
                 className="w-full min-w-[280px] min-h-[180px]"
@@ -755,7 +735,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={220} minWidth={0}>
                   <ComposedChart
                     data={ordersChartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                   >
                     <defs>
                       <linearGradient
@@ -765,21 +745,11 @@ const Dashboard = () => {
                         x2="0"
                         y2="1"
                       >
-                        <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
-                        <stop
-                          offset="30%"
-                          stopColor="#f97316"
-                          stopOpacity={0.6}
-                        />
-                        <stop
-                          offset="70%"
-                          stopColor="#f97316"
-                          stopOpacity={0.3}
-                        />
+                        <stop offset="0%" stopColor="#f97316" stopOpacity={0.8} />
                         <stop
                           offset="100%"
                           stopColor="#f97316"
-                          stopOpacity={0.1}
+                          stopOpacity={0.05}
                         />
                       </linearGradient>
                       <linearGradient
@@ -789,21 +759,11 @@ const Dashboard = () => {
                         x2="0"
                         y2="1"
                       >
-                        <stop offset="0%" stopColor="#00891D" stopOpacity={1} />
-                        <stop
-                          offset="30%"
-                          stopColor="#00891D"
-                          stopOpacity={0.6}
-                        />
-                        <stop
-                          offset="70%"
-                          stopColor="#00891D"
-                          stopOpacity={0.3}
-                        />
+                        <stop offset="0%" stopColor="#00891D" stopOpacity={0.8} />
                         <stop
                           offset="100%"
                           stopColor="#00891D"
-                          stopOpacity={0.1}
+                          stopOpacity={0.05}
                         />
                       </linearGradient>
                     </defs>
@@ -815,33 +775,43 @@ const Dashboard = () => {
                     />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 10, fill: "#6b7280" }}
+                      tick={{ fontSize: 9, fill: "#6b7280" }}
                       tickLine={false}
                       axisLine={false}
                       className="dark:[&_text]:fill-gray-400"
                     />
                     <YAxis
-                      tick={{ fontSize: 10, fill: "#6b7280" }}
+                      yAxisId="ordersAxis"
+                      orientation="left"
+                      tick={{ fontSize: 9, fill: "#f97316" }}
                       tickLine={false}
                       axisLine={false}
-                      domain={[0, 6]}
-                      className="dark:[&_text]:fill-gray-400"
+                      domain={[0, 'auto']}
+                    />
+                    <YAxis
+                      yAxisId="revenueAxis"
+                      orientation="right"
+                      tick={{ fontSize: 9, fill: "#00891D" }}
+                      tickLine={false}
+                      axisLine={false}
+                      domain={[0, 'auto']}
+                      tickFormatter={(v) => `₹${Number(v) >= 1000 ? `${(Number(v)/1000).toFixed(0)}k` : v}`}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "white",
                         border: "1px solid #e5e7eb",
                         borderRadius: "6px",
-                        fontSize: "10px",
+                        fontSize: "11px",
                       }}
                       wrapperStyle={{
                         backgroundColor: "transparent",
                       }}
                       formatter={(value: any, name: any) => {
                         if (name === "Revenue") {
-                          return [`₹${(value * 100).toFixed(1)}`, name];
+                          return [`₹${Number(value || 0).toLocaleString('en-IN')}`, name];
                         }
-                        return [value, name];
+                        return [`${Number(value || 0).toLocaleString()}`, name];
                       }}
                     />
                     <Legend
@@ -849,6 +819,7 @@ const Dashboard = () => {
                       iconType="line"
                     />
                     <Area
+                      yAxisId="ordersAxis"
                       type="monotone"
                       dataKey="orders"
                       fill="url(#ordersGradientChart)"
@@ -856,30 +827,24 @@ const Dashboard = () => {
                       stroke="none"
                       connectNulls={true}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      fill="url(#revenueGradientChart)"
-                      fillOpacity={1}
-                      stroke="none"
-                      connectNulls={true}
-                    />
                     <Line
+                      yAxisId="ordersAxis"
                       type="monotone"
                       dataKey="orders"
                       stroke="#f97316"
-                      strokeWidth={2.5}
+                      strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 5 }}
+                      activeDot={{ r: 4 }}
                       name="Orders"
                     />
                     <Line
+                      yAxisId="revenueAxis"
                       type="monotone"
                       dataKey="revenue"
                       stroke="#00891D"
-                      strokeWidth={2.5}
+                      strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 5 }}
+                      activeDot={{ r: 4 }}
                       name="Revenue"
                     />
                   </ComposedChart>
@@ -928,7 +893,7 @@ const Dashboard = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {totalOrders}
+                      {totalOrders.toLocaleString()}
                     </p>
                     <p className="text-[10px] sm:text-xs text-gray-500">
                       Total Orders
