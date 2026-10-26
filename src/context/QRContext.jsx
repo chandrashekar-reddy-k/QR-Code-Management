@@ -323,7 +323,7 @@ export const QRProvider = ({ children }) => {
     };
     setApprovals((prev) => [newApproval, ...prev]);
     addAuditLog('Created & Published', `${newId} (${newQR.name})`, 'Created and published QR config');
-    showToast(`QR Code ${newId} published! Moved to Permissions & Approvals for verification.`, 'success');
+    showToast(`QR Code ${newId} published successfully! Added to QR Management.`, 'success');
 
     setSelectedQrId(newId);
     // Reset wizard back to starting point (Step 1 with clean initial defaults)
@@ -334,9 +334,9 @@ export const QRProvider = ({ children }) => {
       type: 'submitted',
       qrId: newId,
       name: newQR.name,
-      message: `QR Code ${newId} (${newQR.name}) published! Awaiting post-publish verification & permissions.`,
-      targetScreen: 'permissions',
-      targetLabel: 'View in Permissions & Approvals',
+      message: `QR Code ${newId} (${newQR.name}) published successfully to QR Management!`,
+      targetScreen: 'listing',
+      targetLabel: 'View in QR Management',
     });
     return newId;
   };

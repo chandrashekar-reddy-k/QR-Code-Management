@@ -60,6 +60,7 @@ export const CreateQRModal = () => {
       return;
     }
     publishWizardQR();
+    setActiveScreen('listing');
   };
 
   const handleSaveDraft = (e) => {
@@ -589,7 +590,7 @@ export const CreateQRModal = () => {
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <CheckCircle2 size={15} />
-              Create & Submit for Approval
+              Publish & Go to QR Management
             </button>
           </div>
         </div>

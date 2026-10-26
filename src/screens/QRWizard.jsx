@@ -168,9 +168,10 @@ export const QRWizard = () => {
     saveWizardDraft();
   };
 
-  // Continue to QR Details after publishing
-  const handleContinueToDetails = () => {
+  // Publish and go to QR Management
+  const handlePublishAndGoToQRManagement = () => {
     publishWizardQR();
+    setActiveScreen('listing');
   };
 
   return (
@@ -1662,24 +1663,25 @@ export const QRWizard = () => {
               ))}
 
               {/* Informational workflow notice about post-publish verification and permissions */}
+              {/* Informational workflow notice about QR Management publication */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '12px',
                   padding: '13px 15px',
-                  background: '#F8FAFC',
-                  border: '1px dashed #CBD5E1',
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
                   borderRadius: '8px',
                 }}
               >
-                <ShieldCheck size={18} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <CheckCircle2 size={18} color="#00891D" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#1E293B' }}>
-                    Post-Publish Verification & Permissions
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#166534' }}>
+                    Publish to QR Management Catalog
                   </div>
-                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px', lineHeight: 1.4 }}>
-                    Once created and published, this QR code will automatically move to <strong>Permissions & Approvals</strong> where administrative verification is conducted and live permissions are granted.
+                  <div style={{ fontSize: '12px', color: '#15803D', marginTop: '2px', lineHeight: 1.4 }}>
+                    Publishing immediately activates this QR code in the <strong>QR Management</strong> catalog with real-time routing, analytics attribution, and instant export assets.
                   </div>
                 </div>
               </div>
@@ -1718,11 +1720,11 @@ export const QRWizard = () => {
               {/* Workflow Actions: Publish QR Code */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
-                  onClick={() => publishWizardQR()}
+                  onClick={handlePublishAndGoToQRManagement}
                   className="btn btn-primary"
                   style={{
                     width: '100%',
-                    padding: '10px 16px',
+                    padding: '11px 16px',
                     fontSize: '13.5px',
                     fontWeight: 700,
                     display: 'flex',
@@ -1733,7 +1735,7 @@ export const QRWizard = () => {
                   }}
                 >
                   <Send size={16} />
-                  Publish QR Code
+                  Publish & Go to QR Management
                 </button>
 
                 <div style={{
@@ -1746,7 +1748,7 @@ export const QRWizard = () => {
                   lineHeight: 1.4,
                   textAlign: 'left',
                 }}>
-                  ℹ️ <strong>Workflow:</strong> This creates and publishes your QR code config. Administrative verification and live permissions will be granted post-publish.
+                  ℹ️ <strong>Workflow:</strong> This creates and publishes your QR code directly into <strong>QR Management</strong>.
                 </div>
 
                 <button
@@ -1760,10 +1762,18 @@ export const QRWizard = () => {
             </div>
           </div>
 
-          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0' }}>
+          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button onClick={() => setWizardStep(4)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
               Back to Export
+            </button>
+            <button
+              onClick={handlePublishAndGoToQRManagement}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, padding: '8px 16px' }}
+            >
+              <Send size={15} />
+              Publish & Go to QR Management
             </button>
           </div>
         </div>
