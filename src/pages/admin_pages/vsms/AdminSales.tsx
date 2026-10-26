@@ -58,12 +58,26 @@ export const getOrderSourceClassification = (order) => {
   const orderType = (order.orderType || '').toUpperCase();
   const fulfillmentType = (order.fulfillmentType || '').toUpperCase();
   const deliveryType = (order.deliveryType || '').toUpperCase();
+  const orderNumber = String(order.orderNumber || order.displayId || order.id || '');
+  const isOrdPrefix = orderNumber.startsWith('ORD-');
   const hasVehicle = Boolean(order.vehicleId || order.vehicle);
+
+  // Explicit POS orders or POS-generated ORD-* orders
+  if (orderType === 'POS' || isOrdPrefix) {
+    return {
+      source: 'POS',
+      label: 'POS',
+      badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      isAppOrder: false,
+      isVehicleOrder: false,
+      isPosOrder: true
+    };
+  }
 
   // Vehicle Orders: App-originated orders assigned to a vehicle and classified as vehicle fulfillment
   const isVehicleFulfillment = fulfillmentType === 'VEHICLE_PICKUP' || deliveryType === 'PICKUP_AT_VEHICLE' || orderType === 'VEHICLE';
 
-  if (orderType === 'ONLINE' && isVehicleFulfillment && hasVehicle) {
+  if ((orderType === 'ONLINE' || orderType === 'VEHICLE') && isVehicleFulfillment && hasVehicle) {
     return {
       source: 'VEHICLE',
       label: 'Vehicle App',
@@ -74,7 +88,7 @@ export const getOrderSourceClassification = (order) => {
     };
   }
 
-  // App Orders: consumer application originated orders
+  // App Orders: consumer application originated orders (VK-*)
   if (orderType === 'ONLINE') {
     return {
       source: 'APP',
