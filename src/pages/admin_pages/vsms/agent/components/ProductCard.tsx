@@ -29,6 +29,9 @@ export default function ProductCard({ product }) {
     ? (product.unit.name || product.unit.type || (product.unitValue ? `${product.unitValue} g` : '500g'))
     : (product.unitValue ? `${product.unitValue} ${product.unit || 'g'}` : (product.unit || '500g'));
 
+  const displayPrice = Number(product.vsmPrice ?? product.price ?? 0);
+  const displayMrp = Number(product.mrp ?? displayPrice ?? 0);
+
   return (
     <div className="bg-white rounded-2xl p-2.5 flex flex-col border border-gray-100 shadow-sm hover:shadow-md transition-all">
       {/* Product Image Area */}
@@ -64,11 +67,13 @@ export default function ProductCard({ product }) {
       <div className="flex items-center justify-between mt-2 px-0.5">
         <div className="flex items-center gap-1">
           <span className="text-[10px] font-extrabold text-white bg-[#00891D] px-1.5 py-0.5 rounded leading-none">
-            ₹{Number(product.price || 270).toFixed(0)}
+            ₹{displayPrice.toFixed(0)}
           </span>
-          <span className="text-[9px] font-semibold text-gray-400 line-through">
-            ₹{Number(product.mrp || 300).toFixed(0)}
-          </span>
+          {displayMrp > displayPrice && (
+            <span className="text-[9px] font-semibold text-gray-400 line-through">
+              ₹{displayMrp.toFixed(0)}
+            </span>
+          )}
         </div>
         <span className="text-[9px] font-bold text-gray-400">
           {unitLabel}
