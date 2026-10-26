@@ -120,15 +120,22 @@ export const Campaigns = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Top Header */}
-      <div className="vk-card" style={{ padding: '16px 20px' }}>
+      <div className="vk-card" style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h2 className="vk-card-title">Campaign Management</h2>
-            <p className="vk-card-subtitle">
-              Group and measure multiple QR codes under marketing initiatives, budgets, attribution windows & conversion targets
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00891D', flexShrink: 0 }}>
+              <Megaphone size={18} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>
+                Marketing Initiatives & Attribution
+              </div>
+              <p className="vk-card-subtitle" style={{ margin: 0, fontSize: '12px' }}>
+                Group and measure multiple QR codes under marketing initiatives, budgets, attribution windows & conversion targets
+              </p>
+            </div>
           </div>
-          <button onClick={() => setIsCreating(true)} className="btn btn-primary btn-sm">
+          <button onClick={() => setIsCreating(true)} className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
             <Plus size={15} />
             Create Campaign
           </button>
@@ -343,9 +350,9 @@ export const Campaigns = () => {
       )}
 
       {/* Main Campaign Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px' }}>
+      <div className="campaigns-layout-grid">
         {/* Campaign List (Page 11: Name, Objective, Owner, Start/end dates, Status, Associated QR codes, Metrics) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
           {campaigns.map((camp) => {
             const isSelected = selectedCampaign?.id === camp.id;
             const campQrCount = qrCodes.filter((q) => q.campaignId === camp.id || q.campaign === camp.name).length;
@@ -354,12 +361,14 @@ export const Campaigns = () => {
                 key={camp.id}
                 onClick={() => setSelectedCampaign(camp)}
                 style={{
-                  padding: '16px',
+                  padding: '14px',
                   borderRadius: '10px',
                   border: isSelected ? '2px solid #00891D' : '1px solid #E5E7EB',
                   background: isSelected ? '#E8F5EA' : '#FFFFFF',
                   cursor: 'pointer',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                  minWidth: 0,
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
@@ -370,11 +379,11 @@ export const Campaigns = () => {
                     {camp.status}
                   </span>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{camp.name}</div>
-                <div style={{ fontSize: '12px', color: '#4B5563', margin: '4px 0 8px 0', lineHeight: 1.3 }}>
+                <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827', wordBreak: 'break-word' }}>{camp.name}</div>
+                <div style={{ fontSize: '12px', color: '#4B5563', margin: '4px 0 8px 0', lineHeight: 1.35, wordBreak: 'break-word' }}>
                   {camp.objective}
                 </div>
-                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '8px', wordBreak: 'break-word' }}>
                   Owner: <strong>{camp.owner}</strong> · {camp.startDate} to {camp.endDate}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#374151', borderTop: '1px solid #E5E7EB', paddingTop: '8px' }}>
@@ -390,96 +399,117 @@ export const Campaigns = () => {
 
         {/* Selected Campaign Detail Page (Page 11: Timeline, performance, spend, CPA, export actions) */}
         {selectedCampaign && (
-          <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="vk-card-header">
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            className="vk-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+              minWidth: 0,
+              maxWidth: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Campaign Header Info & Actions */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap', borderBottom: '1px solid #F3F4F6', paddingBottom: '14px' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <span className="badge badge-outline" style={{ fontFamily: 'monospace' }}>{selectedCampaign.id}</span>
                   <span className="badge badge-active">{selectedCampaign.status}</span>
                 </div>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#111827', margin: '6px 0 2px 0' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#111827', margin: '4px 0', wordBreak: 'break-word', lineHeight: 1.3 }}>
                   {selectedCampaign.name}
                 </h2>
-                <p style={{ fontSize: '13px', color: '#4B5563', margin: 0 }}>
+                <p style={{ fontSize: '12.5px', color: '#4B5563', margin: 0, wordBreak: 'break-word', lineHeight: 1.4 }}>
                   {selectedCampaign.objective} · Managed by <strong>{selectedCampaign.owner}</strong>
                 </p>
               </div>
 
               {/* Export Action */}
-              <button onClick={handleExportCampaign} className="btn btn-secondary btn-sm">
+              <button
+                onClick={handleExportCampaign}
+                className="btn btn-secondary btn-sm"
+                style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                title="Export Campaign CSV"
+              >
                 <FileSpreadsheet size={14} />
-                Export Campaign CSV
+                Export CSV
               </button>
             </div>
 
             {/* Campaign Timeline Progress */}
-            <div style={{ background: '#F9FAFB', padding: '14px 18px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: '#4B5563', marginBottom: '6px' }}>
+            <div style={{ background: '#F9FAFB', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#4B5563', marginBottom: '8px' }}>
                 <span><strong>Timeline:</strong> {selectedCampaign.startDate}</span>
                 <span><strong>Hub:</strong> {selectedCampaign.targetHubName}</span>
                 <span><strong>End:</strong> {selectedCampaign.endDate}</span>
               </div>
-              <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ height: '7px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: '45%', height: '100%', background: '#00891D' }} />
               </div>
             </div>
 
             {/* Campaign Metrics Grid: Spend, Scans, Registrations, CPA */}
-            <div className="grid-4">
-              <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Total Campaign Scans</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#111827' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: '12px',
+            }}>
+              <div style={{ padding: '12px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '4px' }}>Total Scans</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>
                   {(selectedCampaign.metrics?.totalScans || 0).toLocaleString()}
                 </div>
               </div>
 
-              <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>App Registrations</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#00891D' }}>
+              <div style={{ padding: '12px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '4px' }}>App Registrations</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#00891D' }}>
                   {(selectedCampaign.metrics?.verifiedRegistrations || 0).toLocaleString()}
                 </div>
               </div>
 
-              <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Cost per Acquisition (CPA)</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#00A322' }}>
+              <div style={{ padding: '12px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '4px' }}>Cost / Acquisition</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#00A322' }}>
                   ₹{selectedCampaign.metrics?.costPerRegistration || 0}
                 </div>
               </div>
 
-              <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Budget & Spend</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#111827' }}>
-                  ₹{(selectedCampaign.spent || 0).toLocaleString()} / ₹{(selectedCampaign.budget || 0).toLocaleString()}
+              <div style={{ padding: '12px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '4px' }}>Budget & Spend</div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827', whiteSpace: 'nowrap' }}>
+                  ₹{(selectedCampaign.spent || 0).toLocaleString()}
+                  <span style={{ fontSize: '11.5px', fontWeight: 500, color: '#6B7280' }}> / ₹{(selectedCampaign.budget || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
             {/* Associated QR Codes */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 className="vk-card-title">
-                  <QrCode size={17} color="#00891D" />
+            <div style={{ minWidth: 0, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                <h3 className="vk-card-title" style={{ margin: 0, fontSize: '14px' }}>
+                  <QrCode size={16} color="#00891D" />
                   Associated QR Codes ({associatedQRs.length})
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setActiveScreen('listing')}
                     className="btn btn-secondary btn-sm"
                   >
-                    <QrCode size={14} /> View QR Management
+                    <QrCode size={13} /> View QR Management
                   </button>
                   <button
                     onClick={() => openCreateQRModal({ campaignId: selectedCampaign.id, campaign: selectedCampaign.name })}
                     className="btn btn-primary btn-sm"
                   >
-                    <Plus size={14} /> Create QR for Campaign
+                    <Plus size={13} /> Create QR
                   </button>
                 </div>
               </div>
 
-              <div className="vk-table-container">
-                <table className="vk-table">
+              <div className="vk-table-container" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+                <table className="vk-table" style={{ minWidth: '560px' }}>
                   <thead>
                     <tr>
                       <th>QR Name & ID</th>
@@ -493,7 +523,7 @@ export const Campaigns = () => {
                   <tbody>
                     {associatedQRs.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#6B7280' }}>
                           No QR codes linked to this campaign yet.
                         </td>
                       </tr>
