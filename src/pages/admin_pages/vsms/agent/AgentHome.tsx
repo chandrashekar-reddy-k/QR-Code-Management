@@ -318,25 +318,7 @@ export default function AgentHome() {
         )}
       </div>
 
-      {/* ── Notification Announcement Card (Live from DB) ── */}
-      {latestNotification ? (
-        <div className="bg-white rounded-2xl p-4 border border-gray-100/90 shadow-sm flex items-start gap-3.5 transition-all hover:shadow-md">
-          <div className="w-10 h-10 rounded-2xl bg-purple-100/60 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Bell size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-extrabold text-gray-900">{latestNotification.title || 'Notification'}</h4>
-              <span className="text-[11px] font-medium text-gray-400">
-                {latestNotification.createdAt ? format(new Date(latestNotification.createdAt), 'hh:mm a') : ''}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
-              {latestNotification.message || latestNotification.body || latestNotification.description || 'New notification received.'}
-            </p>
-          </div>
-        </div>
-      ) : hasAssignedPlanToday ? (
+      {hasAssignedPlanToday ? (
         <div className="bg-white rounded-2xl p-4 border border-gray-100/90 shadow-sm flex items-start gap-3.5 transition-all hover:shadow-md">
           <div className="w-10 h-10 rounded-2xl bg-purple-100/60 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
             <MapPin size={20} />
