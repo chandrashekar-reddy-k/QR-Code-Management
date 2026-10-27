@@ -1316,6 +1316,8 @@ const DeliveryAgentOnboarding = () => {
 
     const payload: Record<string, unknown> = {
       step: 5,
+      isEditMode,
+      isOnboarding: !isEditMode,
       bankInfo: {
         accountHolderName: bank.accountHolderName.trim(),
         bankName: bank.bankName.trim(),
@@ -1891,6 +1893,9 @@ const DeliveryAgentOnboarding = () => {
                 <TextInput
                   label="Full Name"
                   placeholder="Enter full name"
+                  name="delivery_agent_full_name"
+                  id="delivery_agent_full_name"
+                  autoComplete="off"
                   value={s1.fullName}
                   onChange={(e) => setS1({ ...s1, fullName: e.target.value })}
                   required
@@ -1899,6 +1904,9 @@ const DeliveryAgentOnboarding = () => {
                 <TextInput
                   label="Sur Name"
                   placeholder="Enter surname"
+                  name="delivery_agent_surname"
+                  id="delivery_agent_surname"
+                  autoComplete="off"
                   value={s1.surname}
                   onChange={(e) => setS1({ ...s1, surname: e.target.value })}
                   required
@@ -1908,6 +1916,9 @@ const DeliveryAgentOnboarding = () => {
                   label="Father's / Spouse Name"
                   placeholder="Enter name"
                   className="md:col-span-2"
+                  name="father_or_spouse_name"
+                  id="delivery_agent_father_or_spouse_name"
+                  autoComplete="off"
                   value={s1.fatherOrSpouseName}
                   onChange={(e) =>
                     setS1({ ...s1, fatherOrSpouseName: e.target.value })
@@ -1915,18 +1926,30 @@ const DeliveryAgentOnboarding = () => {
                   required
                   error={errors.fatherOrSpouseName}
                 />
-                <TextInput
-                  label="Email ID (Optional)"
-                  type="email"
-                  placeholder="Email ID not required"
-                  value={s1.email}
-                  disabled
-                  onChange={(e) => setS1({ ...s1, email: e.target.value })}
-                  error={errors.email}
+                {/* Hidden dummy credentials to trap aggressive browser password managers */}
+                <input
+                  type="text"
+                  name="fake_username_remember"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ display: "none" }}
+                  autoComplete="username"
                 />
+                <input
+                  type="password"
+                  name="fake_password_remember"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ display: "none" }}
+                  autoComplete="current-password"
+                />
+
                 <PasswordInput
                   label={isEditMode ? "Password (Optional)" : "Password"}
                   placeholder={isEditMode ? "Enter login password (optional)" : "Enter login password"}
+                  name="new_delivery_agent_password"
+                  id="new_delivery_agent_password"
+                  autoComplete="new-password"
                   value={s1.password || ""}
                   onChange={(e) => setS1({ ...s1, password: e.target.value })}
                   required={!isEditMode}
@@ -1935,6 +1958,9 @@ const DeliveryAgentOnboarding = () => {
                 <PasswordInput
                   label={isEditMode ? "Confirm Password (Optional)" : "Confirm Password"}
                   placeholder={isEditMode ? "Confirm login password (optional)" : "Confirm login password"}
+                  name="confirm_delivery_agent_password"
+                  id="confirm_delivery_agent_password"
+                  autoComplete="new-password"
                   value={s1.confirmPassword || ""}
                   onChange={(e) => setS1({ ...s1, confirmPassword: e.target.value })}
                   required={!isEditMode}
@@ -2812,10 +2838,12 @@ const DeliveryAgentOnboarding = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <TextInput
                   label="Account Holder Name"
+                  placeholder="Enter account holder name"
                   value={bank.accountHolderName}
-                  onChange={(e) =>
-                    setBank({ ...bank, accountHolderName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    setBank({ ...bank, accountHolderName: value });
+                  }}
                   required
                   error={errors.accountHolderName}
                 />

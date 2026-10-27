@@ -410,7 +410,9 @@ export const step5Schema = yup.object({
     .string()
     .required("Account holder name is required")
     .min(3, "Name must be at least 3 characters")
-    .max(50, "Name can't exceed 50 characters"),
+    .max(50, "Name can't exceed 50 characters")
+    .trim()
+    .matches(/^[a-zA-Z\s]+$/, "Only alphabets allowed"),
 
   bankName: yup
     .string()

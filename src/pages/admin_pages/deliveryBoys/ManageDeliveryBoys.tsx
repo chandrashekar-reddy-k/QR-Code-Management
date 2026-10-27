@@ -30,7 +30,10 @@ import {
   useDeleteDeliveryBoy,
   useBulkDeleteDeliveryBoys,
 } from "../../../hooks/deliveryBoy";
-import { extractAgentsFromGetAllResponse } from "../../../utils/deliveryAgentsGetAll";
+import {
+  extractAgentsFromGetAllResponse,
+  extractStatsFromGetAllResponse,
+} from "../../../utils/deliveryAgentsGetAll";
 
 // Define the actual API response type
 interface ApiDeliveryAgentResponse {
@@ -250,6 +253,16 @@ const ManageDeliveryBoys = () => {
   }, [rawAgents]);
 
   const stats: ApiStats = useMemo(() => {
+    const apiStats = extractStatsFromGetAllResponse(data);
+    if (apiStats) {
+      return {
+        total: apiStats.total,
+        pending: apiStats.pending,
+        accepted: apiStats.accepted ?? apiStats.approved ?? 0,
+        rejected: apiStats.rejected,
+      };
+    }
+
     const total = rawAgents.length;
     let pending = 0;
     let accepted = 0;
@@ -260,7 +273,7 @@ const ManageDeliveryBoys = () => {
       else pending += 1;
     }
     return { total, pending, accepted, rejected };
-  }, [rawAgents]);
+  }, [data, rawAgents]);
 
   const totalRequests = stats.total;
   const pendingRequests = stats.pending;
@@ -273,7 +286,21 @@ const ManageDeliveryBoys = () => {
 
     // Status filter
     if (statusFilter) {
-      filtered = filtered.filter((a) => a.status === statusFilter);
+      const normalizedFilter = statusFilter.toUpperCase();
+      filtered = filtered.filter((a) => {
+        const agentApproval = (a.approvalStatus || "").toUpperCase();
+        const agentStatus = (a.status || "").toUpperCase();
+        if (normalizedFilter === "PENDING") {
+          return agentApproval === "PENDING" || agentStatus === "PENDING" || agentStatus === "SUBMITTED" || agentStatus === "DOCUMENT VERIFICATION";
+        }
+        if (normalizedFilter === "APPROVED") {
+          return agentApproval === "APPROVED" || agentStatus === "APPROVED";
+        }
+        if (normalizedFilter === "REJECTED") {
+          return agentApproval === "REJECTED" || agentStatus === "REJECTED";
+        }
+        return agentApproval === normalizedFilter || agentStatus === normalizedFilter;
+      });
     }
 
     // City filter
