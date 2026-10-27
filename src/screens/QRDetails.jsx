@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
 import {
@@ -20,23 +21,35 @@ import {
   Calendar,
   AlertTriangle,
   RotateCw,
+  RotateCcw,
+  Trash2,
   CheckCircle2,
   XCircle,
   HelpCircle,
   QrCode,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export const QRDetails = () => {
   const {
     selectedQrId,
     setSelectedQrId,
+    detailsViewMode,
+    setDetailsViewMode,
+    selectedCampaignId,
+    setSelectedCampaignId,
+    campaigns,
     setActiveScreen,
     setWizardData,
     setWizardStep,
     qrCodes,
+    setQrCodes,
     togglePauseQR,
     archiveQR,
+    restoreQR,
+    deleteQR,
     scanEvents,
     auditLogs,
     addAuditLog,
@@ -63,11 +76,12 @@ export const QRDetails = () => {
     return 'select_qr';
   });
 
-  // View Mode: 'grid' (show all category boxes) | 'detail' (show 1 box in full screen, hiding other boxes)
-  const [viewMode, setViewMode] = useState('grid');
+  // View Mode: 'grid' (show all category boxes) | 'detail' (show complete entity page in full screen)
+  const viewMode = detailsViewMode || 'grid';
+  const setViewMode = setDetailsViewMode;
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Keep category in sync if selectedQrId changes from outside
+  // Sync category when selectedQrId changes
   useEffect(() => {
     const cur = qrCodes.find((q) => q.id === selectedQrId);
     if (cur?.status === 'Changes Requested') setCategoryFilter('changes');
@@ -77,16 +91,12 @@ export const QRDetails = () => {
 
   const handleCategorySelect = (cat) => {
     setCategoryFilter(cat);
-    setViewMode('grid'); // Always return to grid of boxes when switching categories
-    const targetList = cat === 'changes' ? changesQrs : cat === 'rejected' ? rejectedQrs : selectAllQrs;
-    if (targetList.length > 0 && !targetList.some((q) => q.id === selectedQrId)) {
-      setSelectedQrId(targetList[0].id);
-    }
+    setDetailsViewMode('grid');
   };
 
   const handleBoxClick = (id) => {
     setSelectedQrId(id);
-    setViewMode('detail'); // Show clicked box completely in full screen by hiding other boxes
+    setDetailsViewMode('detail');
   };
 
   const rawCategoryQrs = categoryFilter === 'changes' ? changesQrs : categoryFilter === 'rejected' ? rejectedQrs : selectAllQrs;
@@ -120,11 +130,215 @@ export const QRDetails = () => {
     const canvas = document.querySelector('.details-qr-preview canvas');
     if (canvas) {
       const link = document.createElement('a');
-      link.download = `${qr.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.png`;
+      link.download = `${(qr.name || qr.id).toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      showToast(`Downloaded QR asset PNG for ${qr.name}.`);
+    } else {
+      showToast(`QR canvas generated.`);
     }
-    showToast(`Downloaded QR asset package for ${qr.name}.`);
+  };
+
+  const handleDownloadSvg = () => {
+    const targetUrl = dest.fallbackUrl || dest.androidUrl || `https://qr.villagkart.com/${dest.redirectCode || qr.id}`;
+    QRCode.toString(
+      targetUrl,
+      {
+        type: 'svg',
+        color: {
+          dark: qr.design?.fgColor || '#00891D',
+          light: qr.design?.bgColor || '#FFFFFF',
+        },
+        errorCorrectionLevel: qr.design?.showLogo ? 'H' : (qr.design?.errorCorrection || 'Q'),
+        margin: 2,
+        width: 600,
+      },
+      (err, svgString) => {
+        if (err) {
+          showToast('Error generating SVG: ' + err.message);
+          return;
+        }
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(qr.name || qr.id).toLowerCase().replace(/[^a-z0-9]/g, '_')}_vector.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Downloaded production vector SVG for ${qr.name}!`);
+      }
+    );
+  };
+
+  const handleDownloadHighResPng = () => {
+    const targetUrl = dest.fallbackUrl || dest.androidUrl || `https://qr.villagkart.com/${dest.redirectCode || qr.id}`;
+    const highResCanvas = document.createElement('canvas');
+    QRCode.toCanvas(
+      highResCanvas,
+      targetUrl,
+      {
+        width: 1200,
+        margin: 2,
+        color: {
+          dark: qr.design?.fgColor || '#00891D',
+          light: qr.design?.bgColor || '#FFFFFF',
+        },
+        errorCorrectionLevel: qr.design?.showLogo ? 'H' : (qr.design?.errorCorrection || 'Q'),
+      },
+      (err) => {
+        if (err) {
+          handleDownload();
+          return;
+        }
+        if (qr.design?.showLogo) {
+          const ctx = highResCanvas.getContext('2d');
+          const cx = 600;
+          const cy = 600;
+          const r = Math.round(1200 * 0.135);
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.18)';
+          ctx.shadowBlur = 12;
+          ctx.shadowOffsetY = 3;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = qr.design?.fgColor || '#00891D';
+          ctx.font = '800 135px "Segoe UI", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('VK', cx, cy);
+        }
+
+        const link = document.createElement('a');
+        link.download = `${(qr.name || qr.id).toLowerCase().replace(/[^a-z0-9]/g, '_')}_300dpi.png`;
+        link.href = highResCanvas.toDataURL('image/png');
+        link.click();
+        showToast(`Downloaded 300 DPI high-res print PNG for ${qr.name}!`);
+      }
+    );
+  };
+
+  const handleDownloadSocialCard = () => {
+    const targetUrl = dest.fallbackUrl || dest.androidUrl || `https://qr.villagkart.com/${dest.redirectCode || qr.id}`;
+    const cardCanvas = document.createElement('canvas');
+    cardCanvas.width = 1080;
+    cardCanvas.height = 1080;
+    const ctx = cardCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, 1080);
+    grad.addColorStop(0, '#FFFFFF');
+    grad.addColorStop(1, '#F3FBF5');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1080, 1080);
+
+    // Header branding
+    ctx.fillStyle = qr.design?.fgColor || '#00891D';
+    ctx.font = 'bold 44px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('VILLAGKART', 540, 110);
+
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 36px "Segoe UI", sans-serif';
+    ctx.fillText(qr.name || 'VillagKart QR Campaign', 540, 175);
+
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '500 24px "Segoe UI", sans-serif';
+    ctx.fillText(qr.campaign || 'Direct from Village Farmers to Doorstep', 540, 220);
+
+    // Generate QR code onto offscreen canvas
+    const qrTemp = document.createElement('canvas');
+    QRCode.toCanvas(
+      qrTemp,
+      targetUrl,
+      {
+        width: 580,
+        margin: 2,
+        color: {
+          dark: qr.design?.fgColor || '#00891D',
+          light: '#FFFFFF',
+        },
+        errorCorrectionLevel: 'H',
+      },
+      (err) => {
+        if (err) {
+          showToast('Error generating social card: ' + err.message);
+          return;
+        }
+
+        // Draw card around QR
+        ctx.fillStyle = '#FFFFFF';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(220, 260, 640, 640, 32);
+          ctx.fill();
+          ctx.strokeStyle = '#E5E7EB';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        } else {
+          ctx.fillRect(220, 260, 640, 640);
+        }
+
+        // Draw QR
+        ctx.drawImage(qrTemp, 250, 290, 580, 580);
+
+        // Center emblem
+        const cx = 540;
+        const cy = 580;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 54, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = qr.design?.fgColor || '#00891D';
+        ctx.font = 'bold 38px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VK', cx, cy);
+
+        // Footer CTA
+        ctx.fillStyle = qr.design?.fgColor || '#00891D';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(260, 930, 560, 70, 35);
+          ctx.fill();
+        } else {
+          ctx.fillRect(260, 930, 560, 70);
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 26px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SCAN WITH ANY CAMERA TO CONNECT', 540, 965);
+
+        // Trigger download
+        const link = document.createElement('a');
+        link.download = `${(qr.name || qr.id).toLowerCase().replace(/[^a-z0-9]/g, '_')}_social_card.png`;
+        link.href = cardCanvas.toDataURL('image/png');
+        link.click();
+        showToast(`Downloaded WhatsApp & social pack card for ${qr.name}!`);
+      }
+    );
   };
 
   const handleEdit = () => {
@@ -135,11 +349,29 @@ export const QRDetails = () => {
   const handleSaveDestinationVersion = () => {
     const currentVersionNum = parseFloat(qr.version?.replace('v', '') || '1.0');
     const newVersion = `v${(currentVersionNum + 0.1).toFixed(1)}`;
+    const targetUrl = newFallbackUrl?.trim() || dest.fallbackUrl;
+
+    setQrCodes((prev) =>
+      prev.map((item) => {
+        if (item.id === qr.id) {
+          return {
+            ...item,
+            version: newVersion,
+            destination: {
+              ...item.destination,
+              fallbackUrl: targetUrl,
+            },
+            lastModified: new Date().toISOString().split('T')[0],
+          };
+        }
+        return item;
+      })
+    );
 
     addAuditLog(
       'Destination Modified (New Version)',
       `${qr.id} (${qr.name})`,
-      `${qr.version} -> ${newVersion}: Fallback updated to ${newFallbackUrl || dest.fallbackUrl}`
+      `${qr.version} -> ${newVersion}: Fallback updated to ${targetUrl}`
     );
 
     showToast(`Published configuration version ${newVersion} with audited rollback protection.`);
@@ -511,19 +743,21 @@ export const QRDetails = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => setActiveScreen('listing')}
                 className="btn btn-secondary btn-sm"
                 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <ArrowLeft size={15} />
-                Back to {categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'} Boxes ({currentCategoryQrs.length})
+                Back to QR Management
               </button>
               <button
-                onClick={() => setActiveScreen('listing')}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '12px', color: '#6B7280' }}
+                onClick={() => setViewMode('grid')}
+                className="btn btn-secondary btn-sm"
+                style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="View All QR Cards in Grid View"
               >
-                Inventory Table
+                <Layers size={14} color="#00891D" />
+                All QR Cards Grid ({currentCategoryQrs.length})
               </button>
             </div>
 
@@ -553,23 +787,53 @@ export const QRDetails = () => {
                 {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
                 {copiedLink ? 'Copied' : 'Copy URL'}
               </button>
-              <button
-                onClick={() => togglePauseQR(qr.id)}
-                className="btn btn-secondary btn-sm"
-                title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
-              >
-                {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
-                {qr.status === 'Active' ? 'Pause' : 'Resume'}
-              </button>
-              <button
-                onClick={() => archiveQR(qr.id)}
-                className="btn btn-secondary btn-sm"
-                style={{ color: '#DC2626' }}
-                title="Archive QR Code"
-              >
-                <Archive size={14} />
-                Archive
-              </button>
+              {qr.status !== 'Archived' && (
+                <button
+                  onClick={() => togglePauseQR(qr.id)}
+                  className="btn btn-secondary btn-sm"
+                  title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
+                >
+                  {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
+                  {qr.status === 'Active' ? 'Pause' : 'Resume'}
+                </button>
+              )}
+              {qr.status === 'Archived' ? (
+                <>
+                  <button
+                    onClick={() => restoreQR(qr.id)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#00891D', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title="Restore QR Code to Active"
+                  >
+                    <RotateCcw size={14} />
+                    Restore
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Permanently delete QR code ${qr.id}?`)) {
+                        deleteQR(qr.id);
+                        setActiveScreen('listing');
+                      }
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title="Delete Permanently"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => archiveQR(qr.id)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title="Archive QR Code"
+                >
+                  <Archive size={14} />
+                  Archive
+                </button>
+              )}
               <button
                 onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
                 className="btn btn-secondary btn-sm"
@@ -581,69 +845,107 @@ export const QRDetails = () => {
             </div>
           </div>
 
-          {/* Category Switcher Pill Strip in Detail Mode */}
+          {/* QR Navigation & Quick Switcher Strip */}
           <div style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
-            borderRadius: '10px',
-            padding: '10px 16px',
+            borderRadius: '12px',
+            padding: '12px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Category:</span>
+            {/* Left: Quick Dropdown Switcher with Prev/Next */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>
+                Select QR Code:
+              </label>
+              <select
+                value={qr.id}
+                onChange={(e) => {
+                  setSelectedQrId(e.target.value);
+                  lastQrIdRef.current = e.target.value;
+                  setViewMode('detail');
+                }}
+                className="form-control"
+                style={{ width: '260px', padding: '6px 10px', fontSize: '13px', fontWeight: 600 }}
+              >
+                {qrCodes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.id} · {item.name} ({item.status})
+                  </option>
+                ))}
+              </select>
+
+              {/* Prev / Next buttons */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = qrCodes.findIndex((q) => q.id === qr.id);
+                    if (currentIndex > 0) {
+                      const prevId = qrCodes[currentIndex - 1].id;
+                      setSelectedQrId(prevId);
+                      lastQrIdRef.current = prevId;
+                    }
+                  }}
+                  disabled={qrCodes.findIndex((q) => q.id === qr.id) <= 0}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '5px 8px' }}
+                  title="Previous QR Code"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = qrCodes.findIndex((q) => q.id === qr.id);
+                    if (currentIndex < qrCodes.length - 1) {
+                      const nextId = qrCodes[currentIndex + 1].id;
+                      setSelectedQrId(nextId);
+                      lastQrIdRef.current = nextId;
+                    }
+                  }}
+                  disabled={qrCodes.findIndex((q) => q.id === qr.id) >= qrCodes.length - 1}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '5px 8px' }}
+                  title="Next QR Code"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Category Filter Quick Switcher */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>Category Cards:</span>
               <button
+                type="button"
                 onClick={() => handleCategorySelect('select_qr')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: categoryFilter === 'select_qr' ? '1.5px solid #00891D' : '1px solid #CBD5E1',
-                  background: categoryFilter === 'select_qr' ? '#F0FDF4' : '#FFFFFF',
-                  color: categoryFilter === 'select_qr' ? '#006B17' : '#475569',
-                }}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #E5E7EB' }}
               >
-                Select QR ({selectAllQrs.length})
+                All ({selectAllQrs.length})
               </button>
               <button
+                type="button"
                 onClick={() => handleCategorySelect('changes')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: categoryFilter === 'changes' ? '1.5px solid #EA580C' : '1px solid #CBD5E1',
-                  background: categoryFilter === 'changes' ? '#FFF7ED' : '#FFFFFF',
-                  color: categoryFilter === 'changes' ? '#C2410C' : '#475569',
-                }}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #FED7AA', color: '#EA580C', background: '#FFF7ED' }}
               >
-                Change Request ({changesQrs.length})
+                Changes Requested ({changesQrs.length})
               </button>
               <button
+                type="button"
                 onClick={() => handleCategorySelect('rejected')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: categoryFilter === 'rejected' ? '1.5px solid #E11D48' : '1px solid #CBD5E1',
-                  background: categoryFilter === 'rejected' ? '#FFF1F2' : '#FFFFFF',
-                  color: categoryFilter === 'rejected' ? '#BE123C' : '#475569',
-                }}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #FECDD3', color: '#E11D48', background: '#FFF1F2' }}
               >
                 Rejected ({rejectedQrs.length})
               </button>
-            </div>
-
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>
-              Viewing full screen details for <strong>{qr.id}</strong> ({qr.name})
             </div>
           </div>
 
@@ -826,6 +1128,7 @@ export const QRDetails = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr auto', gap: '24px', alignItems: 'center' }}>
           {/* QR Canvas Preview */}
           <div
+            className="details-qr-preview"
             onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
             style={{
               padding: '8px',
@@ -868,7 +1171,22 @@ export const QRDetails = () => {
 
             <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '12.5px', color: '#4B5563' }}>
               <div>Type: <strong>{qr.type}</strong></div>
-              <div>Campaign: <strong>{qr.campaign || 'Direct'}</strong></div>
+              <div>
+                Campaign:{' '}
+                <strong
+                  onClick={() => {
+                    const camp = campaigns?.find((c) => c.id === qr.campaignId || c.name === qr.campaign);
+                    if (camp) {
+                      setSelectedCampaignId(camp.id);
+                      setActiveScreen('campaigns');
+                    }
+                  }}
+                  style={{ color: '#00891D', cursor: 'pointer', textDecoration: 'underline' }}
+                  title="Open Campaign entity page"
+                >
+                  {qr.campaign || 'Direct'}
+                </strong>
+              </div>
               <div>Hub: <strong>{qr.hubName || 'Phirangipuram Hub'}</strong></div>
               <div>Owner: <strong>{qr.owner}</strong> ({qr.department})</div>
               <div>Created: <strong>{qr.createdAt || '2026-03-01'}</strong></div>
@@ -1064,7 +1382,7 @@ export const QRDetails = () => {
               <div style={{ fontWeight: 700, fontSize: '13.5px' }}>Vector SVG</div>
               <div style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 12px 0' }}>Infinite Vector Scalability</div>
               <button
-                onClick={() => showToast('Downloaded production SVG vector!')}
+                onClick={handleDownloadSvg}
                 className="btn btn-secondary btn-sm"
                 style={{ width: '100%' }}
               >
@@ -1076,7 +1394,7 @@ export const QRDetails = () => {
               <div style={{ fontWeight: 700, fontSize: '13.5px' }}>300 DPI High-Res PNG</div>
               <div style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 12px 0' }}>Ultra Crisp Print Raster</div>
               <button
-                onClick={() => showToast('Downloaded 300 DPI high-res asset!')}
+                onClick={handleDownloadHighResPng}
                 className="btn btn-secondary btn-sm"
                 style={{ width: '100%' }}
               >
@@ -1088,7 +1406,7 @@ export const QRDetails = () => {
               <div style={{ fontWeight: 700, fontSize: '13.5px' }}>WhatsApp Share Card</div>
               <div style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 12px 0' }}>1080×1080 Square Graphic</div>
               <button
-                onClick={() => showToast('Downloaded WhatsApp card!')}
+                onClick={handleDownloadSocialCard}
                 className="btn btn-primary btn-sm"
                 style={{ width: '100%' }}
               >

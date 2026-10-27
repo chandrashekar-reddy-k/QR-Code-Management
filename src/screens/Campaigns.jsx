@@ -22,9 +22,21 @@ import {
 } from 'lucide-react';
 
 export const Campaigns = () => {
-  const { campaigns, qrCodes, setCampaigns, setActiveScreen, setSelectedQrId, showToast, openCreateQRModal } = useQR();
-  const [selectedCampaign, setSelectedCampaign] = useState(campaigns[0]);
+  const {
+    campaigns,
+    selectedCampaignId,
+    setSelectedCampaignId,
+    qrCodes,
+    setCampaigns,
+    setActiveScreen,
+    setSelectedQrId,
+    showToast,
+    openCreateQRModal,
+  } = useQR();
+  const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
+  const setSelectedCampaign = (camp) => setSelectedCampaignId(camp.id);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCustomWindow, setIsCustomWindow] = useState(false);
 
   // New Campaign Form State (Page 11 Creation Fields)
   const [newCamp, setNewCamp] = useState({
@@ -86,6 +98,7 @@ export const Campaigns = () => {
     setCampaigns((prev) => [created, ...prev]);
     setSelectedCampaign(created);
     setIsCreating(false);
+    setIsCustomWindow(false);
     showToast(`Campaign "${newCamp.name}" created successfully!`);
   };
 
@@ -304,14 +317,45 @@ export const Campaigns = () => {
                     <label className="form-label">Attribution Window</label>
                     <select
                       className="form-control"
-                      value={newCamp.attributionWindowDays}
-                      onChange={(e) => setNewCamp({ ...newCamp, attributionWindowDays: Number(e.target.value) })}
+                      value={isCustomWindow ? 'custom' : newCamp.attributionWindowDays}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setIsCustomWindow(true);
+                        } else {
+                          setIsCustomWindow(false);
+                          setNewCamp({ ...newCamp, attributionWindowDays: Number(e.target.value) });
+                        }
+                      }}
                     >
                       <option value={7}>7 Days</option>
                       <option value={14}>14 Days</option>
                       <option value={30}>30 Days (Standard)</option>
                       <option value={60}>60 Days</option>
+                      <option value={90}>90 Days</option>
+                      <option value="custom">Custom...</option>
                     </select>
+
+                    {isCustomWindow && (
+                      <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          placeholder="e.g. 45"
+                          className="form-control"
+                          value={newCamp.attributionWindowDays}
+                          onChange={(e) =>
+                            setNewCamp({
+                              ...newCamp,
+                              attributionWindowDays: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                          style={{ fontSize: '13px' }}
+                          autoFocus
+                        />
+                        <span style={{ fontSize: '12px', color: '#6B7280', whiteSpace: 'nowrap' }}>Days</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -442,6 +486,7 @@ export const Campaigns = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#4B5563', marginBottom: '8px' }}>
                 <span><strong>Timeline:</strong> {selectedCampaign.startDate}</span>
                 <span><strong>Hub:</strong> {selectedCampaign.targetHubName}</span>
+                <span><strong>Attribution Window:</strong> {selectedCampaign.attributionWindowDays || 30} Days</span>
                 <span><strong>End:</strong> {selectedCampaign.endDate}</span>
               </div>
               <div style={{ height: '7px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
@@ -515,8 +560,8 @@ export const Campaigns = () => {
                       <th>QR Name & ID</th>
                       <th>Type</th>
                       <th>Status</th>
-                      <th>Scans</th>
-                      <th>Registrations</th>
+                      <th style={{ textAlign: 'center' }}>Scans</th>
+                      <th style={{ textAlign: 'center' }}>Registrations</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
@@ -536,8 +581,8 @@ export const Campaigns = () => {
                           </td>
                           <td><span className="badge badge-outline">{q.type}</span></td>
                           <td><span className={`badge badge-${q.status?.toLowerCase().replace(' ', '-')}`}>{q.status}</span></td>
-                          <td style={{ fontWeight: 700 }}>{(q.metrics?.scans || 0).toLocaleString()}</td>
-                          <td style={{ color: '#00891D', fontWeight: 700 }}>{(q.metrics?.verifiedRegistrations || 0).toLocaleString()}</td>
+                          <td style={{ fontWeight: 700, textAlign: 'center' }}>{(q.metrics?.scans || 0).toLocaleString()}</td>
+                          <td style={{ color: '#00891D', fontWeight: 700, textAlign: 'center' }}>{(q.metrics?.verifiedRegistrations || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>
                             <button
                               onClick={() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
 import {
@@ -19,13 +20,16 @@ import {
   RefreshCw,
   Eye,
   Info,
+  Save,
 } from 'lucide-react';
 
 export const DesignStudio = () => {
   const {
     qrCodes,
+    setQrCodes,
     selectedQrId,
     setSelectedQrId,
+    setActiveScreen,
     setTestScanModal,
     showToast,
     addAuditLog,
@@ -158,8 +162,51 @@ export const DesignStudio = () => {
   ];
 
   const handleDownloadAsset = (format) => {
-    const filename = `VillagKart_${currentQR?.id || 'QR'}_${format.toLowerCase()}_${Date.now()}.${format.toLowerCase() === 'pdf' ? 'pdf' : format.toLowerCase()}`;
-    showToast(`Generated print-ready ${format} package (${printDpi} DPI, ${printWidth}x${printHeight} ${printUnit})!`);
+    const targetUrl = currentQR?.destination?.fallbackUrl || currentQR?.destination?.androidUrl || `https://qr.villagkart.com/${currentQR?.destination?.redirectCode || currentQR?.id || 'vk'}`;
+    const baseName = (currentQR?.name || currentQR?.id || 'villagkart_qr').toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+    if (format === 'SVG') {
+      QRCode.toString(
+        targetUrl,
+        {
+          type: 'svg',
+          color: {
+            dark: designForm.fgColor || '#00891D',
+            light: designForm.bgColor || '#FFFFFF',
+          },
+          errorCorrectionLevel: designForm.showLogo ? 'H' : (designForm.errorCorrection || 'Q'),
+          margin: designForm.quietZone || 2,
+          width: 800,
+        },
+        (err, svgString) => {
+          if (err) {
+            showToast('Error generating SVG: ' + err.message);
+            return;
+          }
+          const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${baseName}_vector.svg`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast(`Downloaded production vector SVG (${printWidth}x${printHeight} ${printUnit})!`);
+        }
+      );
+    } else {
+      // PNG or PDF package
+      const previewCanvas = document.querySelector('.design-preview-box canvas');
+      if (previewCanvas) {
+        const link = document.createElement('a');
+        link.download = `${baseName}_${format.toLowerCase() === 'story' ? 'story_9_16' : 'print'}.png`;
+        link.href = previewCanvas.toDataURL('image/png');
+        link.click();
+        showToast(`Generated print-ready ${format} package (${printDpi} DPI, ${printWidth}x${printHeight} ${printUnit})!`);
+      } else {
+        showToast(`Generated print-ready ${format} package (${printDpi} DPI, ${printWidth}x${printHeight} ${printUnit})!`);
+      }
+    }
+
     addAuditLog(
       `Exported Asset (${format})`,
       `${currentQR?.id} - ${currentQR?.name}`,
@@ -183,6 +230,79 @@ export const DesignStudio = () => {
     setTimeout(() => setCopiedEmbed(false), 3000);
   };
 
+  const handleSaveDesign = () => {
+    if (!currentQR) return;
+    setQrCodes((prev) =>
+      prev.map((item) => {
+        if (item.id === currentQR.id) {
+          return {
+            ...item,
+            design: {
+              ...item.design,
+              template: designForm.template,
+              fgColor: designForm.fgColor,
+              bgColor: designForm.bgColor,
+              showLogo: designForm.showLogo,
+              logoSrc: designForm.logoSrc,
+              hasCtaFrame: designForm.hasCtaFrame,
+              ctaText: designForm.ctaText,
+              campaignTitle: designForm.campaignTitle,
+              supportingText: designForm.supportingText,
+              quietZone: designForm.quietZone,
+              errorCorrection: designForm.errorCorrection,
+            },
+            lastModified: new Date().toISOString().split('T')[0],
+          };
+        }
+        return item;
+      })
+    );
+    addAuditLog(
+      'Updated QR Design',
+      `${currentQR.id} (${currentQR.name})`,
+      `Design saved: Template "${designForm.template}", FG: ${designForm.fgColor}, BG: ${designForm.bgColor}`
+    );
+    showToast(`Design configuration for ${currentQR.id} (${currentQR.name}) saved successfully!`);
+  };
+
+  const handleSaveAndResubmit = () => {
+    if (!currentQR) return;
+    setQrCodes((prev) =>
+      prev.map((item) => {
+        if (item.id === currentQR.id) {
+          return {
+            ...item,
+            status: 'Pending Approval',
+            reviewerComments: 'Resubmitted after design re-styling.',
+            design: {
+              ...item.design,
+              template: designForm.template,
+              fgColor: designForm.fgColor,
+              bgColor: designForm.bgColor,
+              showLogo: designForm.showLogo,
+              logoSrc: designForm.logoSrc,
+              hasCtaFrame: designForm.hasCtaFrame,
+              ctaText: designForm.ctaText,
+              campaignTitle: designForm.campaignTitle,
+              supportingText: designForm.supportingText,
+              quietZone: designForm.quietZone,
+              errorCorrection: designForm.errorCorrection,
+            },
+            lastModified: new Date().toISOString().split('T')[0],
+          };
+        }
+        return item;
+      })
+    );
+    addAuditLog(
+      'Resubmitted QR for Approval',
+      `${currentQR.id} (${currentQR.name})`,
+      'Status changed: Changes Requested/Rejected -> Pending Approval'
+    );
+    showToast(`QR Code ${currentQR.id} design saved and resubmitted for governance approval!`);
+    setActiveScreen('details');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Top Header Card */}
@@ -203,8 +323,8 @@ export const DesignStudio = () => {
             </p>
           </div>
 
-          {/* QR Selector & Simulator Action */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* QR Selector & Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }}>Selected QR:</label>
               <select
@@ -222,8 +342,40 @@ export const DesignStudio = () => {
             </div>
 
             <button
+              onClick={handleSaveDesign}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, padding: '7px 14px' }}
+              title="Save current design styling to QR code"
+            >
+              <Save size={15} />
+              Save Design
+            </button>
+
+            {(currentQR?.status === 'Changes Requested' || currentQR?.status === 'Rejected') && (
+              <button
+                onClick={handleSaveAndResubmit}
+                className="btn btn-sm"
+                style={{
+                  background: '#EA580C',
+                  borderColor: '#EA580C',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  padding: '7px 12px',
+                }}
+                title="Save updates and resubmit to reviewer"
+              >
+                <CheckCircle2 size={15} />
+                Save & Resubmit
+              </button>
+            )}
+
+            <button
               onClick={() => setTestScanModal({ isOpen: true, qrCode: currentQR })}
               className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Smartphone size={14} color="#00891D" />
               Test Scan Simulator
@@ -416,6 +568,50 @@ export const DesignStudio = () => {
                 Optimal contrast verified for rural outdoor sunlight & thermal receipt paper.
               </div>
             </div>
+
+            {/* Save Actions in Controls Panel */}
+            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #E5E7EB', paddingTop: '14px' }}>
+              <button
+                type="button"
+                onClick={handleSaveDesign}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 700,
+                  padding: '10px 14px',
+                }}
+              >
+                <Save size={16} />
+                Save Design Changes
+              </button>
+
+              {(currentQR?.status === 'Changes Requested' || currentQR?.status === 'Rejected') && (
+                <button
+                  type="button"
+                  onClick={handleSaveAndResubmit}
+                  className="btn"
+                  style={{
+                    width: '100%',
+                    background: '#EA580C',
+                    borderColor: '#EA580C',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: 700,
+                    padding: '9px 14px',
+                  }}
+                >
+                  <CheckCircle2 size={15} />
+                  Save & Resubmit for Governance
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -476,7 +672,7 @@ export const DesignStudio = () => {
             </div>
 
             {/* Core QR Renderer */}
-            <div style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.12)', borderRadius: '12px', overflow: 'hidden' }}>
+            <div className="design-preview-box" style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.12)', borderRadius: '12px', overflow: 'hidden' }}>
               <QRCodeRenderer
                 value={currentQR?.destination?.fallbackUrl || currentQR?.destination?.androidUrl || `https://qr.villagkart.com/${currentQR?.destination?.redirectCode || currentQR?.id || 'vk'}`}
                 size={previewSize === 'small' ? 180 : previewSize === 'medium' ? 240 : 280}
@@ -486,6 +682,8 @@ export const DesignStudio = () => {
                 logoSrc={designForm.logoSrc || '/villagekart_icon.svg'}
                 hasCtaFrame={designForm.hasCtaFrame}
                 ctaText={designForm.ctaText}
+                campaignTitle={designForm.campaignTitle}
+                supportingText={designForm.supportingText}
                 quietZone={designForm.quietZone}
                 errorCorrection={designForm.errorCorrection}
               />
@@ -500,20 +698,28 @@ export const DesignStudio = () => {
             </div>
           </div>
 
-          {/* Test Scan Simulator Trigger */}
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+          {/* Action Triggers: Save, Simulator, Link */}
+          <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            <button
+              onClick={handleSaveDesign}
+              className="btn btn-primary btn-sm"
+              style={{ padding: '8px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            >
+              <Save size={15} />
+              Save Design
+            </button>
             <button
               onClick={() => setTestScanModal({ isOpen: true, qrCode: currentQR })}
-              className="btn btn-primary btn-sm"
-              style={{ padding: '8px 18px', fontSize: '13px' }}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <Smartphone size={15} />
-              Launch Test-Scan Simulator
+              <Smartphone size={15} color="#00891D" />
+              Launch Test-Scan
             </button>
             <button
               onClick={copyRedirectShortlink}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
               {copiedLink ? 'Copied' : 'Copy Redirect Link'}

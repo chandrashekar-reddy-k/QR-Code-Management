@@ -23,6 +23,7 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
   Check,
   X,
 } from 'lucide-react';
@@ -33,12 +34,17 @@ export const QRListing = () => {
     setQrCodes,
     setActiveScreen,
     setSelectedQrId,
+    setDetailsViewMode,
+    selectedCampaignId,
+    setSelectedCampaignId,
     startNewQRCode,
     campaigns,
     setWizardData,
     setWizardStep,
     togglePauseQR,
     archiveQR,
+    restoreQR,
+    deleteQR,
     setTestScanModal,
     showToast,
     hasPermission,
@@ -79,7 +85,10 @@ export const QRListing = () => {
         item.owner.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all'
+          ? item.status !== 'Archived'
+          : item.status === statusFilter;
       const matchesHub = hubFilter === 'all' || item.hubId === hubFilter || (item.hubName && item.hubName.includes(hubFilter));
       const matchesVillage = villageFilter === 'all' || (item.village && item.village.includes(villageFilter));
       const matchesCampaign = campaignFilter === 'all' || item.campaignId === campaignFilter || (item.campaign && item.campaign.includes(campaignFilter));
@@ -242,9 +251,9 @@ export const QRListing = () => {
                 setCurrentPage(1);
               }}
               className="form-control"
-              style={{ width: '140px', padding: '7px 10px', fontSize: '13px' }}
+              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Active & Review</option>
               <option value="Active">Active</option>
               <option value="Pending Approval">Pending Approval</option>
               <option value="Changes Requested">Changes Requested</option>
@@ -252,7 +261,7 @@ export const QRListing = () => {
               <option value="Draft">Draft</option>
               <option value="Paused">Paused</option>
               <option value="Expired">Expired</option>
-              <option value="Archived">Archived</option>
+              <option value="Archived">Archived ({qrCodes.filter((q) => q.status === 'Archived').length})</option>
             </select>
           </div>
 
@@ -400,8 +409,8 @@ export const QRListing = () => {
                 <th>Owner</th>
                 <th>Status</th>
                 <th>Expiry</th>
-                <th>Scans</th>
-                <th>Conversions</th>
+                <th style={{ textAlign: 'center' }}>Scans</th>
+                <th style={{ textAlign: 'center' }}>Conversions</th>
                 <th>Last Modified</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -464,6 +473,7 @@ export const QRListing = () => {
                             justifyContent: 'center',
                             cursor: 'pointer',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            overflow: 'hidden',
                           }}
                           title="Click to test-scan in simulator"
                         >
@@ -483,6 +493,7 @@ export const QRListing = () => {
                         <div
                           onClick={() => {
                             setSelectedQrId(qr.id);
+                            setDetailsViewMode('detail');
                             setActiveScreen('details');
                           }}
                           style={{ fontWeight: 700, color: '#00891D', cursor: 'pointer', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -539,7 +550,25 @@ export const QRListing = () => {
 
                       {/* Campaign */}
                       <td>
-                        <div style={{ fontWeight: 600, color: '#111827', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div
+                          onClick={() => {
+                            const camp = campaigns?.find((c) => c.id === qr.campaignId || c.name === qr.campaign);
+                            if (camp) {
+                              setSelectedCampaignId(camp.id);
+                              setActiveScreen('campaigns');
+                            }
+                          }}
+                          style={{
+                            fontWeight: 600,
+                            color: '#111827',
+                            maxWidth: '130px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                          }}
+                          title={`Click to view campaign: ${qr.campaign || 'Direct Distribution'}`}
+                        >
                           {qr.campaign || 'Direct Distribution'}
                         </div>
                       </td>
@@ -589,16 +618,16 @@ export const QRListing = () => {
                       </td>
 
                       {/* Scans */}
-                      <td>
-                        <div style={{ fontWeight: 800, color: '#111827' }}>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 800, color: '#111827', textAlign: 'center' }}>
                           {(qr.metrics?.scans || 0).toLocaleString()}
                         </div>
                       </td>
 
                       {/* Conversions */}
-                      <td>
-                        <div style={{ fontSize: '11.5px', color: '#00891D', fontWeight: 700 }}>
-                          {(qr.metrics?.verifiedRegistrations || 0).toLocaleString()} ({qr.metrics?.conversionRate || 0}%)
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11.5px', color: '#00891D', fontWeight: 700, textAlign: 'center' }}>
+                          {(qr.metrics?.verifiedRegistrations || 0).toLocaleString()}
                         </div>
                       </td>
 
@@ -616,6 +645,7 @@ export const QRListing = () => {
                           <button
                             onClick={() => {
                               setSelectedQrId(qr.id);
+                              setDetailsViewMode('detail');
                               setActiveScreen('details');
                             }}
                             className="btn btn-ghost btn-sm"
@@ -646,24 +676,51 @@ export const QRListing = () => {
                           </button>
 
                           {/* Pause / Resume */}
-                          <button
-                            onClick={() => togglePauseQR(qr.id)}
-                            className="btn btn-ghost btn-sm"
-                            style={{ padding: '5px' }}
-                            title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
-                          >
-                            {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
-                          </button>
+                          {qr.status !== 'Archived' && (
+                            <button
+                              onClick={() => togglePauseQR(qr.id)}
+                              className="btn btn-ghost btn-sm"
+                              style={{ padding: '5px' }}
+                              title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
+                            >
+                              {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
+                            </button>
+                          )}
 
-                          {/* Archive */}
-                          <button
-                            onClick={() => archiveQR(qr.id)}
-                            className="btn btn-ghost btn-sm"
-                            style={{ padding: '5px' }}
-                            title="Archive QR"
-                          >
-                            <Archive size={14} color="#DC2626" />
-                          </button>
+                          {/* Archive / Restore / Delete */}
+                          {qr.status === 'Archived' ? (
+                            <>
+                              <button
+                                onClick={() => restoreQR(qr.id)}
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '5px' }}
+                                title="Restore QR Code to Active"
+                              >
+                                <RotateCcw size={14} color="#00891D" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Are you sure you want to permanently delete QR code ${qr.id}?`)) {
+                                    deleteQR(qr.id);
+                                  }
+                                }}
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '5px' }}
+                                title="Delete Permanently"
+                              >
+                                <Trash2 size={14} color="#DC2626" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => archiveQR(qr.id)}
+                              className="btn btn-ghost btn-sm"
+                              style={{ padding: '5px' }}
+                              title="Archive QR"
+                            >
+                              <Archive size={14} color="#DC2626" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

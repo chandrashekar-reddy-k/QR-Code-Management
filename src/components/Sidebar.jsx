@@ -21,6 +21,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   const {
     activeScreen,
     setActiveScreen,
+    setDetailsViewMode,
     approvals,
     qrCodes,
     currentRole,
@@ -118,6 +119,9 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                 <button
                   key={item.id}
                   onClick={() => {
+                    if (item.id === 'details') {
+                      setDetailsViewMode('grid');
+                    }
                     setActiveScreen(item.id);
                     if (setMobileOpen) setMobileOpen(false);
                   }}

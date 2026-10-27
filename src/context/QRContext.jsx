@@ -67,6 +67,7 @@ export const QRProvider = ({ children }) => {
   const [currentRole, setCurrentRole] = useState('Admin'); // 'Admin' | 'Marketing' | 'Hub Manager' | 'VGE'
   const [selectedQrId, setSelectedQrId] = useState('QR-00001');
   const [selectedCampaignId, setSelectedCampaignId] = useState('CMP-001');
+  const [detailsViewMode, setDetailsViewMode] = useState('grid'); // 'grid' | 'detail'
 
   // Master Data
   const [qrCodes, setQrCodes] = useState(() => {
@@ -244,6 +245,25 @@ export const QRProvider = ({ children }) => {
         return item;
       })
     );
+  };
+
+  const restoreQR = (id) => {
+    setQrCodes((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          addAuditLog('Restored QR Code', `${item.id} (${item.name})`, 'Status -> Active');
+          showToast(`QR Code ${item.id} restored to Active`);
+          return { ...item, status: 'Active' };
+        }
+        return item;
+      })
+    );
+  };
+
+  const deleteQR = (id) => {
+    setQrCodes((prev) => prev.filter((item) => item.id !== id));
+    addAuditLog('Deleted QR Code', id, 'Permanently removed');
+    showToast(`QR Code ${id} permanently deleted`);
   };
 
   // Save new QR from wizard and submit for approval
@@ -537,6 +557,8 @@ export const QRProvider = ({ children }) => {
         setCurrentRole,
         selectedQrId,
         setSelectedQrId,
+        detailsViewMode,
+        setDetailsViewMode,
         selectedCampaignId,
         setSelectedCampaignId,
         qrCodes,
@@ -558,6 +580,8 @@ export const QRProvider = ({ children }) => {
         hasPermission,
         togglePauseQR,
         archiveQR,
+        restoreQR,
+        deleteQR,
         wizardStep,
         setWizardStep,
         wizardData,

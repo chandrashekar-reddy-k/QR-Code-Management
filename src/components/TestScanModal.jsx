@@ -107,27 +107,32 @@ export const TestScanModal = () => {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: '20px', alignItems: 'center' }}>
             {/* Viewfinder simulator */}
             <div style={{
               position: 'relative',
               background: '#FFFFFF',
               borderRadius: '16px',
-              padding: '12px',
+              padding: '14px',
               border: '2px solid #E5E7EB',
               boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
               textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}>
               <QRCodeRenderer
-                value={resolvedUrl || destination.fallbackUrl || destination.androidUrl || `https://qr.villagkart.com/${destination.redirectCode || 'test'}`}
+                value={resolvedUrl || destination.fallbackUrl || destination.androidUrl || `https://qr.villagkart.com/${destination.redirectCode || qr.id || 'test'}`}
                 fgColor={qr.design?.fgColor || '#00891D'}
                 bgColor="#FFFFFF"
-                size={140}
+                size={160}
                 hasCtaFrame={false}
                 showLogo={qr.design?.showLogo ?? true}
+                quietZone={2}
               />
-              <div style={{ marginTop: '8px', fontSize: '11px', color: '#00891D', fontWeight: 700 }}>
-                ● Real QR Canvas — Scan with Phone
+              <div style={{ marginTop: '10px', fontSize: '11.5px', color: '#00891D', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#00891D' }}></span>
+                Scan with any phone camera
               </div>
             </div>
 
