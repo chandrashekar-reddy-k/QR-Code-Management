@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -39,6 +39,7 @@ const SECONDARY_KPI_CARD_CLASSES = `bg-white rounded-xl shadow-md border border-
 const Dashboard = () => {
   usePartnerRealtimeSocket();
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
   const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,9 +75,64 @@ const Dashboard = () => {
   const [totalOrders, setTotalOrders] = useState<number>(0);
   const [showBusinessSettings, setShowBusinessSettings] = useState(false);
 
+  // Track initial mount so timeFilter/deliveryFilter changes only refresh the chart
+  const hasLoadedOnce = useRef(false);
+
+  // Helper to extract and set chart data from warehouse-stats response
+  const applyChartData = (data: any) => {
+    const list = data?.chartData || [];
+    setOrdersChartData(list);
+
+    if (data?.chartTotalOrders !== undefined) {
+      setTotalOrders(data.chartTotalOrders);
+    } else if (list.length > 0) {
+      const sum = list.reduce((acc: number, item: any) => acc + (Number(item?.orders) || 0), 0);
+      setTotalOrders(sum);
+    } else if (data?.totalOrders !== undefined) {
+      setTotalOrders(data.totalOrders);
+    } else {
+      setTotalOrders(0);
+    }
+  };
+
+  // Helper to get period query param
+  const getPeriodParam = () => {
+    if (filterPeriod === "Today") return "today";
+    if (filterPeriod === "This Week") return "week";
+    if (filterPeriod === "This Month") return "month";
+    if (filterPeriod === "This Year") return "year";
+    return "all";
+  };
+
+  // Fetch only the chart data when timeFilter or deliveryFilter changes (no page reset)
+  const fetchChartData = async () => {
+    try {
+      setChartLoading(true);
+      const periodParam = getPeriodParam();
+      const statsRes = await fetchData<any>(
+        `partner/orders/warehouse-stats?period=${periodParam}&timeFilter=${timeFilter}&deliveryFilter=${deliveryFilter}`,
+        "GET"
+      );
+      if (statsRes?.data) {
+        applyChartData(statsRes.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch chart data:", err);
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  // 1. Full dashboard reload when page, pagination, or filterPeriod changes
   useEffect(() => {
     fetchDashboardData();
-  }, [currentPage, itemsPerPage, filterPeriod, timeFilter, deliveryFilter]);
+  }, [currentPage, itemsPerPage, filterPeriod]);
+
+  // 2. Chart-only reload when timeFilter or deliveryFilter changes (skip initial mount)
+  useEffect(() => {
+    if (!hasLoadedOnce.current) return;
+    fetchChartData();
+  }, [timeFilter, deliveryFilter]);
 
   // Open Business Settings automatically based on login data flag `categoriesPresent`
   useEffect(() => {
@@ -101,12 +157,7 @@ const Dashboard = () => {
     try {
       setLoading(true);
 
-      // Map UI filter to API param
-      let periodParam = "all";
-      if (filterPeriod === "Today") periodParam = "today";
-      else if (filterPeriod === "This Week") periodParam = "week";
-      else if (filterPeriod === "This Month") periodParam = "month";
-      else if (filterPeriod === "This Year") periodParam = "year";
+      const periodParam = getPeriodParam();
 
       // 1. Fetch warehouse stats with timeFilter, deliveryFilter, and period
       let stats: any = {};
@@ -134,12 +185,7 @@ const Dashboard = () => {
           setCategoriesPercent(stats.categoriesPercent ? Math.round(stats.categoriesPercent) : 0);
           setActiveSellers(stats.activeSellers !== undefined ? String(stats.activeSellers) : "0");
 
-          if (stats.chartData && stats.chartData.length > 0) {
-            setOrdersChartData(stats.chartData);
-          } else {
-            setOrdersChartData([]);
-          }
-          setTotalOrders(stats.totalOrders ?? 0);
+          applyChartData(stats);
 
           // Calculate status donut data directly from backend status counts
           if (stats.statusCounts) {
@@ -212,6 +258,7 @@ const Dashboard = () => {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   };
 
@@ -729,9 +776,17 @@ const Dashboard = () => {
                  "Last 5 Years Activity Trends"} (Live {deliveryFilter === "all" ? "All Orders" : deliveryFilter === "delivered" ? "Delivered Orders" : "Pending Orders"} & Revenue)
               </p>
               <div
-                className="w-full min-w-[280px] min-h-[180px]"
+                className="relative w-full min-w-[280px] min-h-[180px]"
                 style={{ height: 220 }}
               >
+                {chartLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 dark:bg-gray-800/70 backdrop-blur-[1px] rounded-lg">
+                    <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                      <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                      <span>Updating chart...</span>
+                    </div>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height={220} minWidth={0}>
                   <ComposedChart
                     data={ordersChartData}
