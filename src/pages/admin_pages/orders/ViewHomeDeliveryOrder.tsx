@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Phone, MapPin, ChevronDown, Search, FileText, Printer } from "lucide-react";
+import { Phone, MapPin, ChevronDown, Search, FileText, Printer, KeyRound, ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import fetchData from "../../../helper";
 import api from "../../../api/axios";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
@@ -19,6 +19,8 @@ import {
   useUpdateOrderStatus,
   useGetDeliveryAgents,
   useAssignDeliveryAgent,
+  useRequestDeliveryOtp,
+  useVerifyDelivery,
   OrderStatus,
   type DeliveryAgent,
   type PartnerPutOrderStatus,
@@ -235,6 +237,49 @@ const ViewHomeDeliveryOrder = () => {
   const { data: agentsData, isLoading: isLoadingAgents } = useGetDeliveryAgents();
   const updateStatusMutation = useUpdateOrderStatus(id);
   const assignAgentMutation = useAssignDeliveryAgent(id);
+  const requestDeliveryOtpMutation = useRequestDeliveryOtp(id);
+  const verifyDeliveryMutation = useVerifyDelivery(id);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [deliveryOtp, setDeliveryOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: any;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleRequestDeliveryOtp = async () => {
+    try {
+      await requestDeliveryOtpMutation.mutateAsync();
+      setShowOtpModal(true);
+      setResendCooldown(30);
+      setOtpError("");
+    } catch (err: any) {
+      console.error("Failed to request delivery OTP", err);
+    }
+  };
+
+  const handleVerifyDeliveryOtp = async () => {
+    const cleanOtp = deliveryOtp.trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setOtpError("Please enter the 6-digit OTP shared by the customer");
+      return;
+    }
+    setOtpError("");
+    try {
+      await verifyDeliveryMutation.mutateAsync({ otp: cleanOtp });
+      setShowOtpModal(false);
+      setDeliveryOtp("");
+    } catch (err: any) {
+      setOtpError(err.message || "Invalid or expired OTP");
+    }
+  };
   const [order, setOrder] = useState<HomeDeliveryOrderView | null>(null);
   const [statusUpdateOpen, setStatusUpdateOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "">("");
@@ -906,6 +951,38 @@ const ViewHomeDeliveryOrder = () => {
                   </span>
                 </div>
                 <div className="relative" ref={dropdownRef}>
+                  {/* Delivery OTP Actions for Out For Delivery orders */}
+                  {(order.status === OrderStatus.OUT_FOR_DELIVERY || (order.status as string) === "IN_TRANSIT") && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRequestDeliveryOtp}
+                        disabled={requestDeliveryOtpMutation.isPending}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        title="Send Delivery OTP to Customer via MSG91 SMS"
+                      >
+                        {requestDeliveryOtpMutation.isPending ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <KeyRound size={13} />
+                        )}
+                        <span>Send Delivery OTP</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOtpModal(true);
+                          setOtpError("");
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                        title="Enter Customer Delivery OTP to Complete Delivery"
+                      >
+                        <ShieldCheck size={13} />
+                        <span>Verify OTP</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Dynamic Status Flow — only allowed forward transitions shown */}
                   {(() => {
                     const allowedNext = getAllowedNextStatuses(order.status);
@@ -1301,7 +1378,118 @@ const ViewHomeDeliveryOrder = () => {
           </Button>
         </div>
       </Modal>
-    </div>
+    
+      {/* Customer Delivery OTP Modal */}
+      {showOtpModal && order && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-[#00891D] flex items-center justify-center">
+                  <KeyRound size={18} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">Verify Delivery OTP</h3>
+                  <p className="text-[11px] font-medium text-gray-400">Order #{order.orderNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOtpModal(false);
+                  setOtpError("");
+                }}
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Instruction Banner */}
+            <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-amber-950 dark:text-amber-100">
+                <ShieldCheck size={14} className="text-amber-700 shrink-0" />
+                <span>Customer Delivery Verification</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                An OTP was dispatched to the customer's registered mobile number ({order.mobile}). Ask the customer for the OTP only after handing over the package.
+              </p>
+            </div>
+
+            {/* OTP Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center justify-between">
+                <span>Enter 6-Digit OTP</span>
+                <span className="text-[10px] text-gray-400">From Customer</span>
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                autoFocus
+                value={deliveryOtp}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setDeliveryOtp(val);
+                  if (otpError) setOtpError("");
+                }}
+                placeholder="• • • • • •"
+                className="w-full text-center tracking-[0.5em] text-2xl font-black py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-[#00891D] focus:bg-white text-gray-900 dark:text-gray-100 transition-all"
+              />
+              {otpError && (
+                <div className="flex items-center gap-1.5 text-red-600 text-[11px] font-bold pt-1">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                disabled={verifyDeliveryMutation.isPending || deliveryOtp.trim().length < 4}
+                onClick={handleVerifyDeliveryOtp}
+                className="w-full py-3 bg-[#00891D] hover:bg-[#007018] disabled:opacity-50 text-white rounded-xl text-xs font-black shadow-xs active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {verifyDeliveryMutation.isPending ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Verifying OTP...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} strokeWidth={2.5} />
+                    <span>Verify OTP & Complete Delivery</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  disabled={resendCooldown > 0 || requestDeliveryOtpMutation.isPending}
+                  onClick={handleRequestDeliveryOtp}
+                  className="text-xs font-bold text-[#00891D] hover:underline disabled:text-gray-400 disabled:no-underline cursor-pointer"
+                >
+                  {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : "Resend OTP via SMS"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOtpModal(false);
+                    setOtpError("");
+                  }}
+                  className="text-xs font-medium text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 };
 
