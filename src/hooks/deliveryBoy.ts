@@ -159,11 +159,21 @@ const useBulkDeleteDeliveryBoys = () => {
 };
 
 
-/** Lists all delivery agents globally (no warehouse filter). */
-const useGetDeliveryBoyRequests = (_page: number, _limit: number) => {
+/** Lists delivery agent requests with optional filters. */
+const useGetDeliveryBoyRequests = (
+  _page?: number,
+  _limit?: number,
+  dateFilter?: string,
+  search?: string,
+  approvalStatus?: string
+) => {
+  const df = dateFilter?.trim() || "";
+  const q = search?.trim() || "";
+  const status = approvalStatus?.trim() || "";
+
   return useQuery({
-    queryKey: ["deliveryBoyRequests"],
-    queryFn: () => fetchDeliveryAgentsGetAll(),
+    queryKey: ["deliveryBoyRequests", df, q, status],
+    queryFn: () => fetchDeliveryAgentsGetAll(df, q, status),
   });
 };
 
@@ -235,6 +245,30 @@ const useRejectDeliveryBoy = () => {
   });
 };
 
+const useUpdateDeliveryAgentApprovalStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, approvalStatus }: { id: string; approvalStatus: string }) =>
+      fetchData<{ status: boolean; message?: string; response?: string }>(
+        `partner/deliveryagents/update-status/${id}`,
+        "PUT",
+        { approvalStatus }
+      ),
+
+    onSuccess: (data, variables) => {
+      toast.success(data?.message || data?.response || "Agent status updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["deliveryBoyById", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryBoy"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryBoyRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryAgentsByWarehouse"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update agent status");
+    },
+  });
+};
+
 export {
   useGetAllDeliveryBoyList,
   useCreateDeliveryBoy,
@@ -247,4 +281,5 @@ export {
   useApproveDeliveryBoy,
   useRejectDeliveryBoy,
   useToggleDeliveryBoyStatus,
+  useUpdateDeliveryAgentApprovalStatus,
 };

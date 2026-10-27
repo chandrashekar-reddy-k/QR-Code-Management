@@ -237,6 +237,7 @@ const AddDeliveryAgent = () => {
                       label="Father's / Spouse Name"
                       required
                       type="text"
+                      autoComplete="off"
                       placeholder="Enter name"
                       {...field}
                       error={errors.fatherOrSpouseName?.message}
@@ -253,6 +254,7 @@ const AddDeliveryAgent = () => {
                       label="Email ID"
                       required
                       type="email"
+                      autoComplete="off"
                       placeholder="Enter email address"
                       {...field}
                       error={errors.email?.message}
@@ -1105,6 +1107,11 @@ const AddDeliveryAgent = () => {
                       required
                       placeholder="Enter account holder name"
                       {...field}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                        field.onChange(val);
+                      }}
+                      error={errors.accountHolderName?.message}
                     />
                   )}
                 />

@@ -26,7 +26,10 @@ import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { formatDate } from "../../../utils/formatters";
 import { useGetDeliveryBoyRequests } from "../../../hooks/deliveryBoy";
 import { getPartnerWarehouseId } from "../../../utils/partnerWarehouse";
-import { extractAgentsFromGetAllResponse } from "../../../utils/deliveryAgentsGetAll";
+import {
+  extractAgentsFromGetAllResponse,
+  extractStatsFromGetAllResponse,
+} from "../../../utils/deliveryAgentsGetAll";
 
 // Define the API response type
 interface ApiDeliveryAgent {
@@ -36,6 +39,7 @@ interface ApiDeliveryAgent {
   email: string;
   city: string;
   status: "New" | "Pending" | "Accepted" | "Rejected";
+  approvalStatus?: string;
   date: string;
   avatar?: string;
   bonus?: number;
@@ -81,7 +85,10 @@ const DeliveryBoyRequests = () => {
 
   const { data, isLoading, isFetching, refetch, error } = useGetDeliveryBoyRequests(
     currentPage,
-    itemsPerPage
+    itemsPerPage,
+    dateFilter,
+    searchTerm,
+    statusFilter
   );
 
   useEffect(() => {
@@ -120,6 +127,7 @@ const DeliveryBoyRequests = () => {
         email: String(r.email ?? ""),
         city: String(addr?.city ?? r.city ?? ""),
         status,
+        approvalStatus: r.approvalStatus ? String(r.approvalStatus) : undefined,
         date: String(r.createdAt ?? ""),
         avatar: undefined,
         bonus: undefined,
@@ -129,17 +137,26 @@ const DeliveryBoyRequests = () => {
     });
   }, [data]);
 
-  const stats: ApiStats = useMemo(
-    () => ({
+  const stats: ApiStats = useMemo(() => {
+    const apiStats = extractStatsFromGetAllResponse(data);
+    if (apiStats) {
+      return {
+        total: apiStats.total,
+        pending: apiStats.pending,
+        accepted: apiStats.accepted ?? apiStats.approved ?? 0,
+        rejected: apiStats.rejected,
+      };
+    }
+
+    return {
       total: agents.length,
       pending: agents.filter(
         (a) => a.status === "Pending" || a.status === "New"
       ).length,
       accepted: agents.filter((a) => a.status === "Accepted").length,
       rejected: agents.filter((a) => a.status === "Rejected").length,
-    }),
-    [agents]
-  );
+    };
+  }, [data, agents]);
 
   const totalRequests = stats.total;
   const pendingRequests = stats.pending;
@@ -172,7 +189,21 @@ const DeliveryBoyRequests = () => {
 
     // Status filter
     if (statusFilter) {
-      filtered = filtered.filter((a) => a.status === statusFilter);
+      const normalizedFilter = statusFilter.toUpperCase();
+      filtered = filtered.filter((a) => {
+        const agentApproval = (a.approvalStatus || "").toUpperCase();
+        const agentStatus = (a.status || "").toUpperCase();
+        if (normalizedFilter === "PENDING") {
+          return agentApproval === "PENDING" || agentStatus === "PENDING" || agentStatus === "NEW";
+        }
+        if (normalizedFilter === "APPROVED" || normalizedFilter === "ACCEPTED") {
+          return agentApproval === "APPROVED" || agentStatus === "ACCEPTED" || agentStatus === "APPROVED";
+        }
+        if (normalizedFilter === "REJECTED") {
+          return agentApproval === "REJECTED" || agentStatus === "REJECTED";
+        }
+        return agentApproval === normalizedFilter || agentStatus === normalizedFilter;
+      });
     }
 
     // City filter
@@ -571,8 +602,8 @@ const DeliveryBoyRequests = () => {
                 options={[
                   { value: "", label: "Date" },
                   { value: "today", label: "Today" },
-                  { value: "week", label: "This Week" },
-                  { value: "month", label: "This Month" },
+                  { value: "thisweek", label: "This Week" },
+                  { value: "thismonth", label: "This Month" },
                 ]}
               />
             </div>
@@ -590,10 +621,8 @@ const DeliveryBoyRequests = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { value: "", label: "Status" },
-                  { value: "New", label: "New" },
-                  { value: "Pending", label: "Pending" },
-                  { value: "Accepted", label: "Accepted" },
-                  { value: "Rejected", label: "Rejected" },
+                  { value: "PENDING", label: "Pending" },
+                  { value: "APPROVED", label: "Approved" },
                 ]}
               />
             </div>

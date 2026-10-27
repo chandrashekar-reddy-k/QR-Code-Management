@@ -34,3 +34,42 @@ export function extractAgentsFromGetAllResponse(raw: unknown): Record<string, un
 
   return [];
 }
+
+export interface ApiStatsResponse {
+  total: number;
+  pending: number;
+  approved?: number;
+  accepted?: number;
+  rejected: number;
+}
+
+export function extractStatsFromGetAllResponse(raw: unknown): ApiStatsResponse | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const root = raw as Record<string, unknown>;
+
+  if (root.stats && typeof root.stats === "object") {
+    const s = root.stats as Record<string, unknown>;
+    return {
+      total: Number(s.total ?? 0),
+      pending: Number(s.pending ?? 0),
+      accepted: Number(s.approved ?? s.accepted ?? 0),
+      rejected: Number(s.rejected ?? 0),
+    };
+  }
+
+  const data = root.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const d = data as Record<string, unknown>;
+    if (d.stats && typeof d.stats === "object") {
+      const s = d.stats as Record<string, unknown>;
+      return {
+        total: Number(s.total ?? 0),
+        pending: Number(s.pending ?? 0),
+        accepted: Number(s.approved ?? s.accepted ?? 0),
+        rejected: Number(s.rejected ?? 0),
+      };
+    }
+  }
+
+  return null;
+}

@@ -10,7 +10,10 @@ import {
   Button,
   SelectInput,
 } from "../../../components/ui";
-import { useGetDeliveryBoyDetailsById } from "../../../hooks/deliveryBoy";
+import {
+  useGetDeliveryBoyDetailsById,
+  useUpdateDeliveryAgentApprovalStatus,
+} from "../../../hooks/deliveryBoy";
 
 interface AgentEducation {
   id: string;
@@ -431,13 +434,33 @@ const ViewDeliveryAgent = () => {
     },
   ];
 
+  const { mutate: updateStatusMutate, isPending: isUpdatingStatus } =
+    useUpdateDeliveryAgentApprovalStatus();
+
   const handleStatusUpdate = () => {
-    if (!selectedStatus) return;
+    if (!selectedStatus || !id) return;
 
-    console.log("Updating delivery agent status to:", selectedStatus);
+    const reverseMap: Record<string, string> = {
+      "Pending": "PENDING",
+      "Submitted": "PENDING",
+      "Document Verification": "DOCUMENT_VERIFICATION",
+      "Approved": "APPROVED",
+      "Rejected": "REJECTED",
+      "On Hold": "PENDING",
+    };
 
-    setCurrentStatus(selectedStatus);
-    setStatusUpdateOpen(false);
+    const apiStatus = reverseMap[selectedStatus] || selectedStatus.toUpperCase().replace(/\s+/g, "_");
+
+    updateStatusMutate(
+      { id, approvalStatus: apiStatus },
+      {
+        onSuccess: () => {
+          setCurrentStatus(selectedStatus);
+          setStatusUpdateOpen(false);
+          refetch();
+        },
+      }
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -920,9 +943,10 @@ const ViewDeliveryAgent = () => {
                         onClick={handleStatusUpdate}
                         variant="primary"
                         size="sm"
+                        disabled={isUpdatingStatus}
                         className="flex-1"
                       >
-                        Update
+                        {isUpdatingStatus ? "Updating..." : "Update"}
                       </Button>
                       <Button
                         onClick={() => setStatusUpdateOpen(false)}
