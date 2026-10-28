@@ -70,12 +70,15 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
   };
 
   const orders = useMemo(() => {
-    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
     return sharedOrders.filter((o: any) => {
       if (o.status?.toLowerCase() !== 'ready' || o.order_type === 'Self Pickup') return false;
-      const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      const isHandedOverDb =
+        o.allocationStatus === 'HandedOver' ||
+        o.allocation_status === 'HandedOver' ||
+        o.status?.toLowerCase() === 'dispatched' ||
+        o.status?.toLowerCase() === 'out_for_delivery' ||
+        o.status?.toLowerCase() === 'delivered';
       if (isHandedOverDb) return false;
-      if (handedOverIds.includes(String(o.id || o.order_number))) return false;
       return true;
     });
   }, [sharedOrders]);

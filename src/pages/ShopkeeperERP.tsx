@@ -105,10 +105,10 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
           : [];
 
         const total = shopkeeperOrders.length;
-        const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
         const completed = shopkeeperOrders.filter((o: Record<string, unknown>) => {
           const s = (o.status as string)?.toLowerCase();
-          return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id || o.order_number));
+          const alloc = ((o.allocationStatus || o.allocation_status) as string)?.toLowerCase();
+          return s === 'dispatched' || s === 'out_for_delivery' || s === 'delivered' || alloc === 'handedover';
         }).length;
         const breached = shopkeeperOrders.filter((o: Record<string, unknown>) => getSLAInfo(o).isBreached).length;
         const slaPercent = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;

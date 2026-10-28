@@ -61,13 +61,16 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   };
 
   const orders = useMemo(() => {
-    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
     return sharedOrders.filter((o: any) => {
       const isReady = o.status?.toLowerCase() === 'ready';
       const isNotSelfPickup = o.order_type !== 'Self Pickup';
-      const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
-      const isNotLocallyHandedOver = !handedOverIds.includes(String(o.id || o.order_number));
-      return isReady && isNotSelfPickup && !isHandedOverDb && isNotLocallyHandedOver;
+      const isHandedOverDb =
+        o.allocationStatus === 'HandedOver' ||
+        o.allocation_status === 'HandedOver' ||
+        o.status?.toLowerCase() === 'dispatched' ||
+        o.status?.toLowerCase() === 'out_for_delivery' ||
+        o.status?.toLowerCase() === 'delivered';
+      return isReady && isNotSelfPickup && !isHandedOverDb;
     });
   }, [sharedOrders]);
 

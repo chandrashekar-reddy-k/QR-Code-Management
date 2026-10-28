@@ -4,13 +4,15 @@ import {
   Home, MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
   ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon, ArrowRightLeft,
-  Smartphone, CheckCircle2
+  Smartphone, CheckCircle2, Navigation, Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useUserStore } from '../store/userStore';
 import { attendanceAPI } from '../services/api';
 import PunchInScreen from './PunchInScreen';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
 import * as locationService from '../services/locationService';
+import { io } from 'socket.io-client';
 
 let hrmsWindowRef: Window | null = null;
 
@@ -106,6 +108,9 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const roleUpper = (user?.role || localStorage.getItem('role') || localStorage.getItem('partnerRole') || '').toUpperCase();
   const isAgent = portalMode === 'AGENT' || roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT') || roleUpper === 'AGENT' || roleUpper.includes('AGENT') || customRoleUpper.includes('AGENT');
 
+  const [isLiveTracking, setIsLiveTracking] = useState<boolean>(() => locationService.isTrackingActive());
+  const [trackingToggling, setTrackingToggling] = useState<boolean>(false);
+
   useEffect(() => {
     // Check attendance for agent portal users
     const checkAttendance = async () => {
@@ -156,8 +161,38 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       refreshUserProfile();
     }
 
-    // Auto-start live tracking when agent portal is open
-    locationService.startLiveTracking();
+    // Auto-start live tracking if not explicitly disabled
+    if (locationService.isTrackingActive()) {
+      locationService.startLiveTracking();
+    }
+
+    // Listen for custom live-tracking changes across portal tabs
+    const handleTrackingChange = (e: any) => {
+      if (e?.detail?.isTracking !== undefined) {
+        setIsLiveTracking(Boolean(e.detail.isTracking));
+      } else {
+        setIsLiveTracking(locationService.isTrackingActive());
+      }
+    };
+    window.addEventListener('vk:live-tracking-changed', handleTrackingChange);
+
+    // Socket listener for admin "Turn off all agents" trigger
+    let socket: any = null;
+    try {
+      const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:3004' : window.location.origin;
+      socket = io(socketUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('location:force-offline', async () => {
+        try {
+          await locationService.stopLiveTracking();
+          setIsLiveTracking(false);
+          toast('Live tracking turned OFF by Admin', { icon: '🛑' });
+        } catch (_) {}
+      });
+    } catch (_) {}
 
     // Force light theme for agent portal
     const root = window.document.documentElement;
@@ -174,10 +209,32 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     window.addEventListener('beforeunload', handleUnload);
     window.addEventListener('pagehide', handleUnload);
     return () => {
+      window.removeEventListener('vk:live-tracking-changed', handleTrackingChange);
       window.removeEventListener('beforeunload', handleUnload);
       window.removeEventListener('pagehide', handleUnload);
+      if (socket) socket.disconnect();
     };
   }, []);
+
+  const handleToggleLiveTracking = async () => {
+    if (trackingToggling) return;
+    setTrackingToggling(true);
+    try {
+      if (isLiveTracking) {
+        await locationService.stopLiveTracking();
+        setIsLiveTracking(false);
+        toast('Live tracking disabled (Offline)', { icon: '⚪' });
+      } else {
+        await locationService.enableLiveTracking();
+        setIsLiveTracking(true);
+        toast.success('Live GPS tracking ON! Location is live on admin map ✅');
+      }
+    } catch (err: any) {
+      toast.error('Failed to update live tracking status');
+    } finally {
+      setTrackingToggling(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -408,6 +465,34 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* 🟢 Live GPS Tracking Toggle Button */}
+              <button
+                type="button"
+                onClick={handleToggleLiveTracking}
+                disabled={trackingToggling}
+                className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 ${
+                  isLiveTracking
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 shadow-emerald-500/10'
+                    : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                }`}
+                title={isLiveTracking ? 'Live Tracking is ACTIVE (Broadcasting to live map)' : 'Live Tracking is OFF (Click to start)'}
+              >
+                {trackingToggling ? (
+                  <Loader2 size={13} className="animate-spin text-emerald-600" />
+                ) : (
+                  <span className="relative flex h-2.5 w-2.5">
+                    {isLiveTracking && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    )}
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLiveTracking ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Navigation size={12} className={isLiveTracking ? 'text-emerald-600' : 'text-gray-400'} />
+                  <span>{isLiveTracking ? 'Live GPS ON' : 'Live GPS OFF'}</span>
+                </span>
+              </button>
+
               <button
                 className="flex items-center gap-1 px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200 cursor-pointer"
                 title="Open HRMS Portal"
