@@ -54,7 +54,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
   };
 
   useEffect(() => {
-    fetchPickupOtp(true);
+    fetchPickupOtp(false);
   }, [order.id, order.order_number]);
 
   // Poll for delivery partner completing pickup
@@ -107,10 +107,9 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
       setStaffVerifiedAt(new Date());
       setStep("complete");
       toast.success("Order handed over successfully!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to complete handover", err);
-      setStaffVerifiedAt(new Date());
-      setStep("complete");
+      toast.error(err.response?.data?.message || err.response?.data?.error || err.message || "Failed to complete handover");
     } finally {
       setLoading(false);
     }
@@ -272,14 +271,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
                     {copied ? <Check size={16} className="text-[#00891D]" /> : <Copy size={16} />}
                     <span>{copied ? "Copied" : "Copy OTP"}</span>
                   </button>
-                  <button
-                    onClick={() => fetchPickupOtp(true)}
-                    disabled={loadingOtp}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors shadow-sm"
-                  >
-                    <RefreshCw size={16} className={loadingOtp ? "animate-spin" : ""} />
-                    <span>Regenerate</span>
-                  </button>
+
                 </div>
 
                 <div className="bg-green-50/70 border border-green-200 rounded-xl p-4 mb-8 text-left flex items-start gap-3">

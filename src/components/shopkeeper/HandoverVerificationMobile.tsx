@@ -55,7 +55,7 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
   };
 
   useEffect(() => {
-    fetchPickupOtp(true);
+    fetchPickupOtp(false);
   }, [order.id, order.order_number]);
 
   // Poll for delivery partner completing pickup
@@ -116,10 +116,9 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
       setStaffVerifiedAt(new Date());
       setStep("complete");
       toast.success("Order handed over successfully!");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setStaffVerifiedAt(new Date());
-      setStep("complete");
+      toast.error(err.response?.data?.message || err.response?.data?.error || err.message || "Failed to complete handover");
     } finally {
       setLoading(false);
     }
@@ -235,14 +234,7 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
                 {copied ? <Check size={14} className="text-[#00891D]" /> : <Copy size={14} />}
                 <span>{copied ? "Copied" : "Copy OTP"}</span>
               </button>
-              <button
-                onClick={() => fetchPickupOtp(true)}
-                disabled={loadingOtp}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 transition-colors"
-              >
-                <RefreshCw size={14} className={loadingOtp ? "animate-spin" : ""} />
-                <span>Refresh</span>
-              </button>
+
             </div>
 
             {/* Order & Rider info */}
