@@ -130,18 +130,36 @@ export const stopLiveTracking = async () => {
     api.put('/location/status', { isOnline: false }).catch(() => {}),
     api.put('/agent/auth/status', { isOnline: false }).catch(() => {})
   ]);
+  window.dispatchEvent(new CustomEvent('vk:live-tracking-changed', { detail: { isTracking: false } }));
 };
 
-export const enableLiveTracking = () => {
+export const enableLiveTracking = async () => {
   localStorage.removeItem(TRACKING_DISABLED_KEY);
-  // Sync online status to database immediately via both paths
-  api.put('/location/status', { isOnline: true }).catch(() => {});
-  api.put('/agent/auth/status', { isOnline: true }).catch(() => {});
+
+  // Sync online status to database immediately
+  await Promise.all([
+    api.put('/location/status', { isOnline: true }).catch(() => {}),
+    api.put('/agent/auth/status', { isOnline: true }).catch(() => {})
+  ]);
+
+  // Immediately capture and send current position
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        logLocation({ lat: latitude, lon: longitude, accuracy: accuracy || 20 });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }
+
   startLiveTracking();
+  window.dispatchEvent(new CustomEvent('vk:live-tracking-changed', { detail: { isTracking: true } }));
 };
 
 export const isTrackingActive = () => {
-  return trackingInterval !== null && localStorage.getItem(TRACKING_DISABLED_KEY) !== 'true';
+  return localStorage.getItem(TRACKING_DISABLED_KEY) !== 'true';
 };
 
 /**
@@ -162,4 +180,25 @@ export const getLocationHistory = async (params) => {
         params
     });
     return response.data;
+};
+
+/**
+ * Admin: Deactivate / Turn off live tracking for all agents
+ */
+export const deactivateAllAgents = async (storeId?: string) => {
+    const response = await api.put('/location/deactivate-all', {}, {
+        params: storeId ? { storeId } : undefined
+    });
+    return response.data;
+};
+
+export default {
+    logLocation,
+    startLiveTracking,
+    stopLiveTracking,
+    enableLiveTracking,
+    isTrackingActive,
+    getLiveLocations,
+    getLocationHistory,
+    deactivateAllAgents
 };

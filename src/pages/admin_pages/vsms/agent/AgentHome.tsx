@@ -5,8 +5,10 @@ import {
   Bell, MapPin, Clock, Truck, Package, ArrowUpRight,
   ChevronRight, ArrowRight, ShieldCheck, CheckCircle2,
   AlertTriangle, Store, BarChart2, TrendingUp, Layers,
-  RefreshCw, RotateCcw, Gift, FileCheck, LogOut, LogIn
+  RefreshCw, RotateCcw, Gift, FileCheck, LogOut, LogIn,
+  Navigation, Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import PunchOutModal from '../components/PunchOutModal';
 import PunchInScreen from './PunchInScreen';
@@ -36,14 +38,50 @@ export default function AgentHome() {
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [latestNotification, setLatestNotification] = useState<any>(null);
+  const [isLiveTracking, setIsLiveTracking] = useState<boolean>(() => locationService.isTrackingActive());
+  const [trackingToggling, setTrackingToggling] = useState<boolean>(false);
 
   useEffect(() => {
     loadHomeData();
+
+    const handleTrackingChange = (e: any) => {
+      if (e?.detail?.isTracking !== undefined) {
+        setIsLiveTracking(Boolean(e.detail.isTracking));
+      } else {
+        setIsLiveTracking(locationService.isTrackingActive());
+      }
+    };
+    window.addEventListener('vk:live-tracking-changed', handleTrackingChange);
+    return () => {
+      window.removeEventListener('vk:live-tracking-changed', handleTrackingChange);
+    };
   }, []);
+
+  const handleToggleTracking = async () => {
+    if (trackingToggling) return;
+    setTrackingToggling(true);
+    try {
+      if (isLiveTracking) {
+        await locationService.stopLiveTracking();
+        setIsLiveTracking(false);
+        toast('Live tracking disabled (Offline)', { icon: '⚪' });
+      } else {
+        await locationService.enableLiveTracking();
+        setIsLiveTracking(true);
+        toast.success('Live GPS tracking ON! Location is live on admin map ✅');
+      }
+    } catch (err) {
+      toast.error('Failed to update live tracking status');
+    } finally {
+      setTrackingToggling(false);
+    }
+  };
 
   const loadHomeData = async () => {
     setLoading(true);
-    locationService.startLiveTracking();
+    if (locationService.isTrackingActive()) {
+      locationService.startLiveTracking();
+    }
     try {
       // 1. Fetch Today's Plan status
       try {
@@ -316,6 +354,56 @@ export default function AgentHome() {
             </button>
           </div>
         )}
+
+        {/* Live GPS Tracking Toggle Card */}
+        <div className={`rounded-2xl p-3.5 border transition-all flex items-center justify-between ${
+          isLiveTracking 
+            ? 'bg-emerald-50/70 border-emerald-200/80 shadow-sm' 
+            : 'bg-gray-50 border-gray-200/70'
+        }`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+              isLiveTracking ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-gray-200 text-gray-500'
+            }`}>
+              {trackingToggling ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Navigation size={18} className={isLiveTracking ? 'animate-pulse' : ''} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-gray-900 tracking-tight">Live Location Tracking</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                  isLiveTracking ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {isLiveTracking ? 'Broadcasting Live' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-gray-500 truncate mt-0.5">
+                {isLiveTracking
+                  ? 'Transmitting GPS to admin portal live map'
+                  : 'Turn ON to show your location on admin dashboard'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleTracking}
+            disabled={trackingToggling}
+            aria-label="Toggle live tracking"
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              isLiveTracking ? 'bg-emerald-600' : 'bg-gray-300'
+            } ${trackingToggling ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                isLiveTracking ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {hasAssignedPlanToday ? (

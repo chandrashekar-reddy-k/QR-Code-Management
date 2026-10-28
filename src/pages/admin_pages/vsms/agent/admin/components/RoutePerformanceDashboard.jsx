@@ -8,6 +8,7 @@ import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import * as routeService from '../../../services/routeService';
 import * as locationService from '../../../services/locationService';
 import toast from 'react-hot-toast';
+import { VEHICLE_POINTER_PNG } from '../../../components/vehiclePointerBase64';
 
 // ── Circular Progress Ring ──────────────────────────────────────────────────
 function ProgressRing({ percentage = 0, size = 48, stroke = 4 }) {
@@ -203,19 +204,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
     },
-    {
-      label: 'Missed Villages',
-      value: totalMissed,
-      icon: <AlertCircle size={22} />,
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-500',
-    },
   ];
 
   if (loading && (!data.performance || data.performance.length === 0)) return (
     <div className="space-y-4 p-4 animate-pulse">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
           <div key={i} className="h-28 bg-white border border-gray-100 rounded-2xl p-4 shadow-xs" />
         ))}
       </div>
@@ -227,7 +221,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     <div className="space-y-5 pb-20">
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {kpis.map((k, i) => (
           <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${k.iconBg} ${k.iconColor}`}>
@@ -241,36 +235,6 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
         ))}
       </div>
 
-      {/* ── Active Coverage Alerts ── */}
-      {data.performance.some(p => p.missedVillages?.length > 0) && (
-        <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell size={16} className="text-red-500 animate-pulse" />
-            <span className="text-xs font-bold text-red-700 uppercase tracking-widest">Active Coverage Alerts</span>
-            <span className="ml-1 px-2 py-0.5 bg-red-200 text-red-800 text-[9px] font-bold rounded-full">{totalMissed}</span>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 custom-scrollbar">
-            {data.performance.filter(p => p.missedVillages?.length > 0).map((p, i) => (
-              <button
-                key={i}
-                onClick={() => fetchDetail(p.assignmentId)}
-                className="flex items-center justify-between gap-4 bg-white rounded-xl border border-red-100 px-4 py-3 shadow-sm min-w-[200px] hover:border-red-300 transition-all"
-              >
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse shrink-0" />
-                  <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                      {p.agentName?.toUpperCase() || 'UNKNOWN AGENT'}
-                    </p>
-                    <p className="text-xs font-bold text-red-600">{p.missedVillages.length} Village Missed</p>
-                  </div>
-                </div>
-                <ChevronRight size={14} className="text-red-300 shrink-0" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Main content: Agent List + Sidebar ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -496,19 +460,20 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       const displayName = fullName.toUpperCase();
                       const pinColor = isLiveNow ? '#10b981' : '#f59e0b';
                       
-                      const textWidth = Math.max(displayName.length * 8 + 36, 90);
+                      const textWidth = Math.max(displayName.length * 8 + 36, 100);
                       const svgWidth = textWidth + 10;
                       const centerX = svgWidth / 2;
                       
                       const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                        <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="86" viewBox="0 0 ${svgWidth} 86">
+                          <!-- Agent Name Header Pill -->
                           <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                          <g transform="translate(10, 8) scale(0.65)" fill="${pinColor}">
-                            <path d="M20 8h-3V4c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-5.5l1.96 2.5H17V11h2.5zM18 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                          </g>
-                          <text x="30" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
-                          <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#0f172a"/>
-                          <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                          <circle cx="17" cy="16" r="4.5" fill="${pinColor}"/>
+                          <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
+                          <!-- Pointer Arrow -->
+                          <path d="M ${centerX} 28 L ${centerX + 5} 36 L ${centerX - 5} 36 Z" fill="#0f172a"/>
+                          <!-- Embedded Base64 Vehicle Pointer Image -->
+                          <image href="${VEHICLE_POINTER_PNG}" x="${centerX - 24}" y="36" width="48" height="48"/>
                         </svg>
                       `)}`;
 
@@ -519,8 +484,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                           onClick={() => { const p = data.performance.find(x => x.userId === (loc.userId || loc.id)); if (p) fetchDetail(p.assignmentId); }}
                           icon={{
                             url: svgPin,
-                            scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
-                            anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                            scaledSize: new window.google.maps.Size(svgWidth * 0.9, 78),
+                            anchor: new window.google.maps.Point((svgWidth * 0.9) / 2, 76)
                           }}
                         />
                       );
@@ -533,20 +498,21 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   }) && (() => {
                     const selectedPerfItem = data.performance.find(p => p.assignmentId === selectedAssignment);
                     const displayName = (selectedPerfItem?.agentName || 'Agent').toUpperCase();
-                    const textWidth = Math.max(displayName.length * 8 + 36, 110);
+                    const textWidth = Math.max(displayName.length * 8 + 36, 120);
                     const svgWidth = textWidth + 10;
                     const centerX = svgWidth / 2;
                     const pinColor = '#94a3b8';
                     
                     const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="86" viewBox="0 0 ${svgWidth} 86">
+                        <!-- Offline Name Header Pill -->
                         <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#1e293b" stroke="#ffffff" stroke-width="2"/>
-                        <g transform="translate(10, 8) scale(0.65)" fill="${pinColor}">
-                          <path d="M20 8h-3V4c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-5.5l1.96 2.5H17V11h2.5zM18 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                        </g>
-                        <text x="30" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName} (OFFLINE)</text>
-                        <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#1e293b"/>
-                        <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                        <circle cx="17" cy="16" r="4.5" fill="${pinColor}"/>
+                        <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName} (OFFLINE)</text>
+                        <!-- Pointer Arrow -->
+                        <path d="M ${centerX} 28 L ${centerX + 5} 36 L ${centerX - 5} 36 Z" fill="#1e293b"/>
+                        <!-- Embedded Base64 Vehicle Pointer Image (grayscale) -->
+                        <image href="${VEHICLE_POINTER_PNG}" x="${centerX - 24}" y="36" width="48" height="48" style="filter: grayscale(100%) opacity(0.8);"/>
                       </svg>
                     `)}`;
 
@@ -556,8 +522,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                         position={breadcrumbPath[breadcrumbPath.length - 1]}
                         icon={{
                           url: svgPin,
-                          scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
-                          anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                          scaledSize: new window.google.maps.Size(svgWidth * 0.9, 78),
+                          anchor: new window.google.maps.Point((svgWidth * 0.9) / 2, 76)
                         }}
                       />
                     );

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, Users, MapPin, AlertCircle, CheckCircle2,
   ChevronRight, Search, RefreshCw, X, Bell, Activity,
-  Filter, Clock, ShoppingBag, Maximize2, Minimize2
+  Filter, Clock, ShoppingBag, Maximize2, Minimize2,
+  PowerOff, Loader2
 } from 'lucide-react';
 import { GoogleMap, MarkerF, PolylineF, OverlayViewF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
@@ -11,6 +12,7 @@ import * as locationService from '../services/locationService';
 import { usePerformanceQuery } from '../hooks/useVsmsCache';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { VEHICLE_POINTER_PNG } from './vehiclePointerBase64';
 
 // ── Circular Progress Ring ──────────────────────────────────────────────────
 function ProgressRing({ percentage = 0, size = 48, stroke = 4 }) {
@@ -51,6 +53,24 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   const [mapZoom, setMapZoom] = useState(10);
 
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [turningOffAll, setTurningOffAll] = useState(false);
+
+  const handleTurnOffAllLocations = async () => {
+    if (!window.confirm('Are you sure you want to turn off live tracking for ALL agents? This will mark all agents offline in the database.')) {
+      return;
+    }
+    setTurningOffAll(true);
+    try {
+      await locationService.deactivateAllAgents(storeId);
+      toast.success('All agent live locations turned OFF successfully');
+      setLiveLocations(prev => prev.map(l => ({ ...l, isOnDuty: false, isOnline: false })));
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to turn off agent locations');
+    } finally {
+      setTurningOffAll(false);
+    }
+  };
 
   const { data: cachedPerf, isLoading, isFetching, refetch } = usePerformanceQuery(storeId);
 
@@ -247,19 +267,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
     },
-    {
-      label: 'Missed Villages',
-      value: totalMissed,
-      icon: <AlertCircle size={22} />,
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-500',
-    },
   ];
 
   if (isLoading && !cachedPerf && (!data.performance || data.performance.length === 0)) return (
     <div className="space-y-4 p-4 animate-pulse">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
           <div key={i} className="h-28 bg-white border border-gray-100 rounded-2xl p-4 shadow-xs" />
         ))}
       </div>
@@ -271,7 +284,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     <div className="space-y-5 pb-20">
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {kpis.map((k, i) => (
           <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${k.iconBg} ${k.iconColor}`}>
@@ -285,156 +298,45 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
         ))}
       </div>
 
-      {/* ── Active Coverage Alerts ── */}
-      {data.performance.some(p => p.missedVillages?.length > 0) && (
-        <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell size={16} className="text-red-500 animate-pulse" />
-            <span className="text-xs font-bold text-red-700 uppercase tracking-widest">Active Coverage Alerts</span>
-            <span className="ml-1 px-2 py-0.5 bg-red-200 text-red-800 text-[9px] font-bold rounded-full">{totalMissed}</span>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 custom-scrollbar">
-            {data.performance.filter(p => p.missedVillages?.length > 0).map((p, i) => (
-              <button
-                key={i}
-                onClick={() => fetchDetail(p.assignmentId)}
-                className="flex items-center justify-between gap-4 bg-white rounded-xl border border-red-100 px-4 py-3 shadow-sm min-w-[200px] hover:border-red-300 transition-all"
-              >
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse shrink-0" />
-                  <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                      {p.agentName?.toUpperCase() || 'UNKNOWN AGENT'}
-                    </p>
-                    <p className="text-xs font-bold text-red-600">{p.missedVillages.length} Village Missed</p>
-                  </div>
-                </div>
-                <ChevronRight size={14} className="text-red-300 shrink-0" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* ── Main content: Agent List + Sidebar ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* ── Main content: Map (70%) + Agent Listing (30%) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-        {/* ── Agent List ── */}
-        <div className="lg:col-span-8 space-y-3">
+        {/* ── Map & Route Timeline (70% on desktop) ── */}
+        <div className="lg:col-span-8 order-1">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-          {/* Search & Filters */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
-              <input
-                type="text"
-                placeholder="Search agent by name or route..."
-                className="w-full bg-white border border-gray-200 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium text-gray-700 placeholder-gray-300"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button onClick={fetchData} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-emerald-600 transition-all shadow-sm">
-              <RefreshCw size={17} />
-            </button>
-            <button className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-gray-600 transition-all shadow-sm">
-              <Filter size={17} />
-            </button>
-            {/* Active Only Toggle */}
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Active Only</span>
-              <button
-                onClick={() => setShowOnlyActive(v => !v)}
-                className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${showOnlyActive ? 'bg-emerald-500' : 'bg-gray-200'}`}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${showOnlyActive ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* Agent Cards */}
-          {filteredPerf.length === 0 && (
-            <div className="py-16 bg-white rounded-lg border border-gray-200 flex flex-col items-center gap-3">
-              <Users size={36} className="text-gray-200" />
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No agents found</p>
-            </div>
-          )}
-
-          {filteredPerf.map((p, idx) => {
-            const live = isAgentLive(p.userId);
-            const isSelected = selectedAssignment === p.assignmentId;
-            return (
-              <button
-                key={p.assignmentId}
-                onClick={() => fetchDetail(p.assignmentId)}
-                className={`w-full bg-white rounded-lg border px-5 py-4 flex items-center justify-between gap-4 transition-all shadow-sm hover:shadow-md text-left ${isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/10' : 'border-gray-200 hover:border-emerald-200'}`}
-              >
-                {/* Left: progress + name */}
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <ProgressRing percentage={p.completionRate || 0} size={48} stroke={4} />
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full ${
-                      live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'
-                    }`} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{p.agentName}</p>
-                      <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded uppercase ${
-                        live ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                        {live ? 'Online' : 'Offline'}
-                      </span>
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">
-                      {p.routeName} • {p.assignedCount ?? 0} Assigned Villages
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right: stats */}
-                <div className="flex items-center gap-6 shrink-0">
-                  <div className="hidden md:block text-right">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Today's Sales</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">₹{(p.totalSales || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="hidden sm:block text-right">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Coverage</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{p.visitedCount ?? 0}/{p.assignedCount ?? 1}</p>
-                  </div>
-                  <span className={`px-3 py-1 text-[10px] font-bold rounded-lg border ${
-                    live
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-gray-100 text-gray-500 border-gray-200'
-                  }`}>
-                    {live ? 'Online' : 'Offline'}
-                  </span>
-                  <ChevronRight size={16} className={`transition-colors ${isSelected ? 'text-emerald-500' : 'text-gray-300'}`} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Right Sidebar ── */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-6 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-
-            {/* Sidebar Header */}
-            <div className="px-5 py-4 border-b border-gray-200 flex items-start justify-between">
+            {/* Map Header */}
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <p className="text-base font-bold text-gray-900 dark:text-white leading-none">
-                  {selectedPerf?.agentName || 'All Agents (Live Map)'}
+                  {selectedPerf?.agentName || 'All Active Agents (Live GPS Tracking)'}
                 </p>
-                <p className="text-[10px] font-bold text-gray-400 mt-1">
-                  {selectedPerf?.routeName || 'Click any agent from the list to filter map to that person'}
+                <p className="text-xs font-medium text-gray-400 mt-1">
+                  {selectedPerf?.routeName
+                    ? `Tracking Route: ${selectedPerf.routeName}`
+                    : 'Real-time GPS markers of field agents broadcasting from agent portal'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {selectedAssignment && (
+                <button
+                  onClick={handleTurnOffAllLocations}
+                  disabled={turningOffAll}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                  title="Turn off live tracking for all agents"
+                >
+                  {turningOffAll ? (
+                    <Loader2 size={13} className="animate-spin text-rose-600" />
+                  ) : (
+                    <PowerOff size={13} className="text-rose-600" />
+                  )}
+                  <span>Turn Off All Agents</span>
+                </button>
+
+                {selectedAssignment ? (
                   <>
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-lg border border-emerald-100 uppercase tracking-widest">
-                      <Activity size={10} className="animate-pulse" /> Selected
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-100 uppercase tracking-widest">
+                      <Activity size={12} className="animate-pulse" /> Selected
                     </span>
                     <button
                       onClick={() => {
@@ -455,23 +357,28 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                           }
                         }
                       }}
-                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[9px] font-bold rounded-lg transition-colors"
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
                       title="Show all agents on map"
                     >
-                      Show All
+                      Show All Agents
                     </button>
                   </>
+                ) : (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                    Live View
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Map Container with Expandable In-Page Height */}
+            {/* Map Container with High Height for 70% Layout */}
             <div 
               id="vsms-map-container"
               className={`relative transition-all duration-500 overflow-hidden ${
                 isMapFullscreen 
-                  ? 'h-[650px] w-full bg-gray-100 ring-2 ring-emerald-500 shadow-2xl rounded-xl' 
-                  : 'h-[300px] w-full bg-gray-100'
+                  ? 'h-[750px] w-full bg-gray-100 ring-2 ring-emerald-500 shadow-2xl rounded-xl' 
+                  : 'h-[520px] w-full bg-gray-100'
               }`}
             >
               {/* Action Buttons: Expand and Minimize Map Controls */}
@@ -489,7 +396,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     title="Expand Map View"
                   >
                     <Maximize2 size={16} className="text-emerald-400" />
-                    <span>Expand Map</span>
+                    <span>Expand</span>
                   </button>
                 ) : (
                   <button
@@ -503,7 +410,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     title="Minimize Map View"
                   >
                     <Minimize2 size={16} className="text-white" />
-                    <span>Minimize Map</span>
+                    <span>Minimize</span>
                   </button>
                 )}
               </div>
@@ -542,20 +449,20 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       const pinColor = isLiveNow ? '#10b981' : '#f59e0b';
                       
                       // Dynamically calculate badge width based on text length
-                      const textWidth = Math.max(displayName.length * 8 + 36, 90);
+                      const textWidth = Math.max(displayName.length * 8 + 36, 100);
                       const svgWidth = textWidth + 10;
                       const centerX = svgWidth / 2;
                       
                       const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                        <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="86" viewBox="0 0 ${svgWidth} 86">
+                          <!-- Agent Name Header Pill -->
                           <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                          <!-- Delivery Truck Icon replacing the dot -->
-                          <g transform="translate(10, 8) scale(0.65)" fill="${pinColor}">
-                            <path d="M20 8h-3V4c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-5.5l1.96 2.5H17V11h2.5zM18 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                          </g>
-                          <text x="30" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
-                          <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#0f172a"/>
-                          <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                          <circle cx="17" cy="16" r="4.5" fill="${pinColor}"/>
+                          <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
+                          <!-- Pointer Arrow -->
+                          <path d="M ${centerX} 28 L ${centerX + 5} 36 L ${centerX - 5} 36 Z" fill="#0f172a"/>
+                          <!-- Embedded Base64 Vehicle Pointer Image -->
+                          <image href="${VEHICLE_POINTER_PNG}" x="${centerX - 24}" y="36" width="48" height="48"/>
                         </svg>
                       `)}`;
 
@@ -566,8 +473,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                           onClick={() => { const p = data.performance.find(x => x.userId === (loc.userId || loc.id)); if (p) fetchDetail(p.assignmentId); }}
                           icon={{
                             url: svgPin,
-                            scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
-                            anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                            scaledSize: new window.google.maps.Size(svgWidth * 0.9, 78),
+                            anchor: new window.google.maps.Point((svgWidth * 0.9) / 2, 76)
                           }}
                         />
                       );
@@ -580,20 +487,21 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   }) && (() => {
                     const selectedPerfItem = data.performance.find(p => p.assignmentId === selectedAssignment);
                     const displayName = (selectedPerfItem?.agentName || 'Agent').toUpperCase();
-                    const textWidth = Math.max(displayName.length * 8 + 36, 110);
+                    const textWidth = Math.max(displayName.length * 8 + 36, 120);
                     const svgWidth = textWidth + 10;
                     const centerX = svgWidth / 2;
                     const pinColor = '#94a3b8';
                     
                     const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="86" viewBox="0 0 ${svgWidth} 86">
+                        <!-- Offline Name Header Pill -->
                         <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#1e293b" stroke="#ffffff" stroke-width="2"/>
-                        <g transform="translate(10, 8) scale(0.65)" fill="${pinColor}">
-                          <path d="M20 8h-3V4c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-5.5l1.96 2.5H17V11h2.5zM18 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                        </g>
-                        <text x="30" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName} (OFFLINE)</text>
-                        <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#1e293b"/>
-                        <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                        <circle cx="17" cy="16" r="4.5" fill="${pinColor}"/>
+                        <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName} (OFFLINE)</text>
+                        <!-- Pointer Arrow -->
+                        <path d="M ${centerX} 28 L ${centerX + 5} 36 L ${centerX - 5} 36 Z" fill="#1e293b"/>
+                        <!-- Embedded Base64 Vehicle Pointer Image (grayscale) -->
+                        <image href="${VEHICLE_POINTER_PNG}" x="${centerX - 24}" y="36" width="48" height="48" style="filter: grayscale(100%) opacity(0.8);"/>
                       </svg>
                     `)}`;
 
@@ -603,8 +511,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                         position={breadcrumbPath[breadcrumbPath.length - 1]}
                         icon={{
                           url: svgPin,
-                          scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
-                          anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                          scaledSize: new window.google.maps.Size(svgWidth * 0.9, 78),
+                          anchor: new window.google.maps.Point((svgWidth * 0.9) / 2, 76)
                         }}
                       />
                     );
@@ -712,15 +620,113 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200">
                     <p className="text-[9px] font-bold text-gray-700 mb-1">Live Status</p>
-                    <p className="text-[8px] text-gray-400 leading-relaxed">Agents with active GPS are shown live on the map.</p>
+                    <p className="text-[8px] text-gray-400 leading-relaxed">Agents broadcasting live GPS are shown on map.</p>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200">
                     <p className="text-[9px] font-bold text-gray-700 mb-1">Click to Drill</p>
-                    <p className="text-[8px] text-gray-400 leading-relaxed">Click any agent row to see their village timeline.</p>
+                    <p className="text-[8px] text-gray-400 leading-relaxed">Click any agent in list to focus their live position.</p>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── Agent Listing (30% on desktop) ── */}
+        <div className="lg:col-span-4 order-2 space-y-3">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Agent Directory</h3>
+                <p className="text-[10px] font-medium text-gray-400">Select an agent to track route & timeline</p>
+              </div>
+              {/* Active Only Toggle */}
+              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1">
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Active</span>
+                <button
+                  type="button"
+                  onClick={() => setShowOnlyActive(v => !v)}
+                  className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${showOnlyActive ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${showOnlyActive ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search agent / route..."
+                className="w-full bg-gray-50 border border-gray-200 pl-8 pr-8 py-2 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-medium text-gray-700 placeholder-gray-400"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={fetchData}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-emerald-600 transition-colors"
+                title="Refresh list"
+              >
+                <RefreshCw size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Agent Cards List with Custom Scrollbar */}
+          <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1 custom-scrollbar">
+            {filteredPerf.length === 0 && (
+              <div className="py-12 bg-white rounded-2xl border border-gray-200 flex flex-col items-center gap-2 text-center p-4">
+                <Users size={32} className="text-gray-300" />
+                <p className="text-xs font-bold text-gray-400">No agents found</p>
+              </div>
+            )}
+
+            {filteredPerf.map((p) => {
+              const live = isAgentLive(p.userId);
+              const isSelected = selectedAssignment === p.assignmentId;
+              return (
+                <button
+                  key={p.assignmentId}
+                  onClick={() => fetchDetail(p.assignmentId)}
+                  className={`w-full bg-white rounded-2xl border p-3.5 flex items-center justify-between gap-3 transition-all shadow-sm hover:shadow-md text-left ${
+                    isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/10 bg-emerald-50/20' : 'border-gray-200 hover:border-emerald-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <ProgressRing percentage={p.completionRate || 0} size={42} stroke={3.5} />
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${
+                        live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'
+                      }`} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-gray-900 truncate">{p.agentName}</p>
+                      </div>
+                      <p className="text-[10px] font-medium text-gray-400 truncate mt-0.5">
+                        {p.routeName || 'No Route'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-[9px] font-semibold text-gray-500">
+                        <span>Sales: ₹{(p.totalSales || 0).toLocaleString()}</span>
+                        <span>•</span>
+                        <span>{p.visitedCount ?? 0}/{p.assignedCount ?? 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className={`px-2 py-0.5 text-[8px] font-black rounded-full uppercase tracking-wider ${
+                      live ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {live ? 'Live' : 'Off'}
+                    </span>
+                    <ChevronRight size={14} className={`transition-colors ${isSelected ? 'text-emerald-600' : 'text-gray-300'}`} />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
