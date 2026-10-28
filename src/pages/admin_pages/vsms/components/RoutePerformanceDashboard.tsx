@@ -319,7 +319,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                {/* Turn Off All Agents button hidden as requested */}
+                {/* <button
                   onClick={handleTurnOffAllLocations}
                   disabled={turningOffAll}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition-all active:scale-95 disabled:opacity-50"
@@ -331,7 +332,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     <PowerOff size={13} className="text-rose-600" />
                   )}
                   <span>Turn Off All Agents</span>
-                </button>
+                </button> */}
 
                 {selectedAssignment ? (
                   <>

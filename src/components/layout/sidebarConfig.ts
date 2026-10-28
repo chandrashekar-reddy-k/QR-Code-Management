@@ -173,7 +173,11 @@ export const initialStateCheckers = {
   isRouteManagementOpen: (pathname: string) =>
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage" || pathname === "/vsms/live-tracking",
   isVehicleManagementOpen: (pathname: string) =>
-    pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
+    pathname === "/vsms/live-tracking" ||
+    pathname === "/vsms/vehicles" ||
+    pathname === "/vsms/routes-coverage" ||
+    pathname === "/vsms/fuel-maintenance" ||
+    pathname === "/vsms/damages",
   isExpenseManagementOpen: (pathname: string) =>
     pathname.startsWith("/expenses"),
   isInventoryManagementOpen: (pathname: string) =>
@@ -218,7 +222,23 @@ export const sidebarConfig: MenuSection[] = [
     icon: Truck,
     stateKey: "isVehicleManagementOpen",
     hasSubPermissions: true,
+    activeCheck: activeCheckers.isVehicleManagementOpen,
     subItems: [
+      {
+        path: "/vsms/live-tracking",
+        label: "Live Agent Tracking",
+        icon: Radio,
+      },
+      {
+        path: "/vsms/vehicles",
+        label: "Fleet Vehicles",
+        icon: Truck,
+      },
+      {
+        path: "/vsms/routes-coverage",
+        label: "Routes & Coverage",
+        icon: MapPin,
+      },
       {
         path: "/vsms/fuel-maintenance",
         label: "Fuel & Maintenance",
@@ -412,26 +432,8 @@ export const sidebarConfig: MenuSection[] = [
       pathname.startsWith("/delivery-types") ||
       pathname.startsWith("/scheduled-delivery") ||
       pathname.startsWith("/delivery-settings/store-pickup") ||
-      pathname.startsWith("/delivery-settings/pick-at-vehicle") ||
-      pathname.startsWith("/vsms/live-tracking") ||
-      pathname.startsWith("/vsms/vehicles") ||
-      pathname.startsWith("/vsms/routes-coverage"),
+      pathname.startsWith("/delivery-settings/pick-at-vehicle"),
     subItems: [
-      {
-        path: "/vsms/live-tracking",
-        label: "Live Agent Tracking",
-        icon: Radio,
-      },
-      {
-        path: "/vsms/vehicles",
-        label: "Fleet Vehicles",
-        icon: Truck,
-      },
-      {
-        path: "/vsms/routes-coverage",
-        label: "Routes & Coverage",
-        icon: MapPin,
-      },
       {
         path: "/delivery-settings/delivery-types",
         label: "Delivery Types",
