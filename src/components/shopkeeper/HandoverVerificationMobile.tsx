@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { SharedOrdersContext } from "./SharedOrdersContext";
 import { ArrowLeft, CheckCircle, Loader2, Copy, Check, RefreshCw, KeyRound, Bike, ShieldCheck } from "lucide-react";
 import api from "../../api/axios";
 import toast from "react-hot-toast";
@@ -20,6 +21,8 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
   const [staffVerifiedAt, setStaffVerifiedAt] = useState<Date | null>(null);
   const order = data || {};
   const pollTimerRef = useRef<any>(null);
+  const sharedOrdersCtx = useContext(SharedOrdersContext);
+  const refreshOrders = sharedOrdersCtx?.refreshOrders;
 
   const steps = [
     { key: "otp-verification", label: "Pickup OTP", desc: "Share 6-digit OTP with rider" },
@@ -29,7 +32,7 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
   const currentStepIdx = steps.findIndex((s) => s.key === step);
 
   // Fetch or generate fresh unique Pickup OTP
-  const fetchPickupOtp = async (forceRegenerate = true) => {
+  const fetchPickupOtp = async (forceRegenerate = false) => {
     const orderIdentifier = order.id || order.order_number || order.orderNumber;
     if (!orderIdentifier) return;
     setLoadingOtp(true);
@@ -38,17 +41,19 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
         ? `/orders/${orderIdentifier}/pickup-otp?regenerate=true&t=${Date.now()}`
         : `/orders/${orderIdentifier}/pickup-otp?t=${Date.now()}`;
       const res = await api.get(url);
+      if (res.data?.isHandedOver) {
+        setStaffVerifiedAt(new Date());
+        setStep("complete");
+        if (refreshOrders) refreshOrders();
+        return;
+      }
       if (res.data?.otp || res.data?.pickupOtp) {
         setOtp(String(res.data.otp || res.data.pickupOtp));
         return;
       }
-    } catch {
-      // Fallback: generate a fresh unique random 6-digit number
-      let fallbackOtp;
-      do {
-        fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      } while (fallbackOtp === otp);
-      setOtp(fallbackOtp);
+    } catch (err: any) {
+      console.error("Failed to load pickup OTP", err);
+      toast.error(err.response?.data?.message || err.response?.data?.error || "Failed to load pickup OTP");
     } finally {
       setLoadingOtp(false);
     }
@@ -79,7 +84,8 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
         ) {
           setStaffVerifiedAt(new Date());
           setStep("complete");
-          clearInterval(pollTimerRef.current);
+          if (refreshOrders) refreshOrders();
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         }
       } catch {
         // ignore polling error
@@ -103,21 +109,20 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
     try {
       setLoading(true);
       const orderIdentifier = order.id || order.order_number || order.orderNumber;
-      if (orderIdentifier) {
-        await api.put(`/orders/${orderIdentifier}/handover`);
-
-        // Fallback local cache
-        const handedOverIds = JSON.parse(localStorage.getItem("handedOverIds") || "[]");
-        if (!handedOverIds.includes(String(orderIdentifier))) {
-          const newIds = [...handedOverIds, String(orderIdentifier)];
-          localStorage.setItem("handedOverIds", JSON.stringify(newIds));
-        }
+      if (!orderIdentifier) return;
+      if (!otp) {
+        toast.error("Pickup OTP is required. Please wait for OTP to load or click Regenerate.");
+        return;
+      }
+      await api.put(`/orders/${orderIdentifier}/handover`, { otp });
+      if (refreshOrders) {
+        await refreshOrders();
       }
       setStaffVerifiedAt(new Date());
       setStep("complete");
       toast.success("Order handed over successfully!");
     } catch (err: any) {
-      console.error(err);
+      console.error("Failed to complete handover", err);
       toast.error(err.response?.data?.message || err.response?.data?.error || err.message || "Failed to complete handover");
     } finally {
       setLoading(false);
@@ -234,7 +239,14 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
                 {copied ? <Check size={14} className="text-[#00891D]" /> : <Copy size={14} />}
                 <span>{copied ? "Copied" : "Copy OTP"}</span>
               </button>
-
+              <button
+                onClick={() => fetchPickupOtp(true)}
+                disabled={loadingOtp}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 transition-colors"
+              >
+                <RefreshCw size={14} className={loadingOtp ? "animate-spin text-[#00891D]" : ""} />
+                <span>Regenerate OTP</span>
+              </button>
             </div>
 
             {/* Order & Rider info */}
@@ -278,7 +290,7 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
 
             <button
               onClick={handleConfirmHandover}
-              disabled={loading}
+              disabled={loading || !otp || loadingOtp}
               className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 transition-opacity shadow-sm"
               style={{ backgroundColor: "#00891D", opacity: loading ? 0.7 : 1 }}
             >
