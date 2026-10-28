@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Vault, Wallet, Sparkles, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { getStoreCashRegister, closeStoreCashRegister, updateStoreCashRegister } from '../services/cashService';
@@ -36,11 +35,30 @@ export default function CloseStoreSafeView({
     else if (onClose) onClose();
   };
 
+  const applyInitialDenominations = (data) => {
+    const reg = data?.storeRegister;
+    if (reg?.closingDenominations && typeof reg.closingDenominations === 'object') {
+      const merged = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
+      Object.entries(reg.closingDenominations).forEach(([k, v]) => {
+        merged[k] = parseInt(v) || 0;
+      });
+      setDenominations(merged);
+      if (reg.closingRemarks) setRemarks(reg.closingRemarks);
+    } else if (reg?.openingDenominations && typeof reg.openingDenominations === 'object') {
+      const merged = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
+      Object.entries(reg.openingDenominations).forEach(([k, v]) => {
+        merged[k] = parseInt(v) || 0;
+      });
+      setDenominations(merged);
+    }
+  };
+
   const fetchRegister = async () => {
     setLoadingRegister(true);
     try {
       const data = await getStoreCashRegister(date, storeFilterId);
       setStoreRegisterData(data);
+      applyInitialDenominations(data);
     } catch (err) {
       console.error('Failed to fetch store cash register:', err);
     } finally {
@@ -53,10 +71,30 @@ export default function CloseStoreSafeView({
       fetchRegister();
     } else {
       setStoreRegisterData(propsStoreRegisterData);
+      applyInitialDenominations(propsStoreRegisterData);
     }
   }, [propsStoreRegisterData, date, storeFilterId]);
 
   const expectedCash = storeRegisterData?.liveMetrics?.availableCash || 0;
+  const safeCash = storeRegisterData?.liveMetrics?.safeBalance || 0;
+  const totalStoreCash = storeRegisterData?.liveMetrics?.totalStoreCash || (expectedCash + safeCash);
+
+  const openingDenoms = storeRegisterData?.storeRegister?.openingDenominations || null;
+
+  const handleFillOpeningDenoms = () => {
+    if (!openingDenoms) return;
+    const merged = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
+    Object.entries(openingDenoms).forEach(([k, v]) => {
+      merged[k] = parseInt(v) || 0;
+    });
+    setDenominations(merged);
+    toast.success('Filled with opening denominations');
+  };
+
+  const handleClearDenoms = () => {
+    setDenominations({ "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 });
+    toast.success('Denominations reset to zero');
+  };
 
   // Compute total counted value dynamically from denominations
   const totalCounted = Object.entries(denominations).reduce((sum, [denom, count]) => {
@@ -132,17 +170,72 @@ export default function CloseStoreSafeView({
 
       {/* Main Form Card Container */}
       <div className="bg-white rounded-3xl border border-gray-200/80 p-6 md:p-8 shadow-xs space-y-6">
-        {/* Banner: Expected Counter Cash */}
-        <div className="bg-gray-50/80 border border-gray-100 rounded-2xl px-6 py-4.5 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-700">Expected Counter Cash</span>
-          <span className="text-lg md:text-xl font-bold text-[#0e8345] tabular-nums">
-            ₹{expectedCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+        {/* Cash Holding Breakdown: Counter Cash, Persistent Safe, and Combined Store Cash */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-emerald-50/80 border border-emerald-200/60 rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-800">Expected Counter Cash</span>
+              <Wallet size={16} className="text-emerald-600" />
+            </div>
+            <span className="text-xl font-black text-[#0e8345] tabular-nums mt-2">
+              ₹{expectedCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-emerald-600 font-medium mt-1">To count physically below</span>
+          </div>
+
+          <div className="bg-blue-50/80 border border-blue-200/60 rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-800">Safe Balance (Persistent)</span>
+              <Vault size={16} className="text-blue-600" />
+            </div>
+            <span className="text-xl font-black text-blue-700 tabular-nums mt-2">
+              ₹{safeCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-blue-600 font-medium mt-1">Stays inside safe across days</span>
+          </div>
+
+          <div className="bg-gray-50/80 border border-gray-200/60 rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-700">Total Store Cash</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Counter + Safe</span>
+            </div>
+            <span className="text-xl font-black text-gray-900 tabular-nums mt-2">
+              ₹{totalStoreCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-gray-500 font-medium mt-1">Combined store cash holding</span>
+          </div>
         </div>
 
         {/* Section: Active Physical Denominations */}
         <div>
-          <h4 className="text-xs font-bold text-gray-900 mb-3">Active Physical Denominations</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div>
+              <h4 className="text-xs font-bold text-gray-900">Active Physical Denominations</h4>
+              <p className="text-[11px] text-gray-400 font-medium">Count each note/coin in the counter cash drawer</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {openingDenoms && (
+                <button
+                  type="button"
+                  onClick={handleFillOpeningDenoms}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e8345] text-xs font-bold rounded-xl border border-emerald-200 transition-all cursor-pointer active:scale-95"
+                  title="Populate table with the opening cash denominations"
+                >
+                  <Sparkles size={13} />
+                  <span>Use Opening Denominations</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleClearDenoms}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-all cursor-pointer active:scale-95"
+                title="Reset all counts to 0"
+              >
+                <RefreshCw size={12} />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
           <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-2xs">
             <table className="w-full text-left">
               <thead>
