@@ -3,4 +3,4 @@ export { Sidebar } from './Sidebar';
 export { TestScanModal } from './TestScanModal';
 export { ToastContainer } from './ToastContainer';
 export { TopHeader } from './TopHeader';
-export { CreateQRModal } from './CreateQRModal';
+export { DeleteConfirmModal } from './DeleteConfirmModal';

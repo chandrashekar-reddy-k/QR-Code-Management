@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import QRCode from 'qrcode';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
@@ -8,53 +8,30 @@ import {
   Download,
   Pause,
   Play,
-  Archive,
   Copy,
-  ExternalLink,
-  Layers,
-  History,
-  BarChart2,
-  FileText,
-  ShieldCheck,
   Check,
   Edit3,
-  Calendar,
-  AlertTriangle,
-  RotateCw,
-  RotateCcw,
   Trash2,
   CheckCircle2,
   XCircle,
-  HelpCircle,
-  QrCode,
-  Search,
-  ChevronLeft,
-  ChevronRight,
+  Clock,
 } from 'lucide-react';
 
 export const QRDetails = () => {
   const {
     selectedQrId,
-    setSelectedQrId,
-    detailsViewMode,
-    setDetailsViewMode,
-    selectedCampaignId,
-    setSelectedCampaignId,
-    campaigns,
     setActiveScreen,
-    setWizardData,
-    setWizardStep,
+    startEditQRCode,
     qrCodes,
     setQrCodes,
     togglePauseQR,
-    archiveQR,
-    restoreQR,
-    deleteQR,
+    requestDeleteQR,
     scanEvents,
     auditLogs,
     addAuditLog,
     setTestScanModal,
     showToast,
+    handleApprovalAction,
   } = useQR();
 
   const [activeTab, setActiveTab] = useState('overview'); // overview, destinations, assets, history, analytics, audit
@@ -64,55 +41,9 @@ export const QRDetails = () => {
   const [editingDest, setEditingDest] = useState(false);
   const [newFallbackUrl, setNewFallbackUrl] = useState('');
 
-  // 3 Governance Options: Select QR (All), Change Request, Rejected (Removed 'Normal')
-  const changesQrs = qrCodes.filter((q) => q.status === 'Changes Requested');
-  const rejectedQrs = qrCodes.filter((q) => q.status === 'Rejected');
-  const selectAllQrs = qrCodes;
 
-  const [categoryFilter, setCategoryFilter] = useState(() => {
-    const cur = qrCodes.find((q) => q.id === selectedQrId);
-    if (cur?.status === 'Changes Requested') return 'changes';
-    if (cur?.status === 'Rejected') return 'rejected';
-    return 'select_qr';
-  });
-
-  // View Mode: 'grid' (show all category boxes) | 'detail' (show complete entity page in full screen)
-  const viewMode = detailsViewMode || 'grid';
-  const setViewMode = setDetailsViewMode;
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Sync category when selectedQrId changes
-  useEffect(() => {
-    const cur = qrCodes.find((q) => q.id === selectedQrId);
-    if (cur?.status === 'Changes Requested') setCategoryFilter('changes');
-    else if (cur?.status === 'Rejected') setCategoryFilter('rejected');
-    else if (cur) setCategoryFilter('select_qr');
-  }, [selectedQrId, qrCodes]);
-
-  const handleCategorySelect = (cat) => {
-    setCategoryFilter(cat);
-    setDetailsViewMode('grid');
-  };
-
-  const handleBoxClick = (id) => {
-    setSelectedQrId(id);
-    setDetailsViewMode('detail');
-  };
-
-  const rawCategoryQrs = categoryFilter === 'changes' ? changesQrs : categoryFilter === 'rejected' ? rejectedQrs : selectAllQrs;
-  const currentCategoryQrs = rawCategoryQrs.filter((q) => {
-    if (!searchQuery.trim()) return true;
-    const term = searchQuery.toLowerCase();
-    return (
-      q.name.toLowerCase().includes(term) ||
-      q.id.toLowerCase().includes(term) ||
-      (q.village && q.village.toLowerCase().includes(term)) ||
-      (q.hubName && q.hubName.toLowerCase().includes(term))
-    );
-  });
-
-  const qr = qrCodes.find((q) => q.id === selectedQrId) || rawCategoryQrs[0] || qrCodes[0];
-  if (!qr) return <div>QR code not found.</div>;
+  const qr = qrCodes.find((q) => q.id === selectedQrId) || qrCodes[0];
+  if (!qr) return <div style={{ padding: '24px' }}>QR code not found.</div>;
 
   const dest = qr.destination || {};
   const metrics = qr.metrics || { scans: 0, uniqueVisitors: 0, verifiedRegistrations: 0, firstOrders: 0 };
@@ -194,27 +125,43 @@ export const QRDetails = () => {
           const ctx = highResCanvas.getContext('2d');
           const cx = 600;
           const cy = 600;
-          const r = Math.round(1200 * 0.135);
+          const squareSize = Math.round(1200 * 0.25);
+          const squareX = Math.round(cx - squareSize / 2);
+          const squareY = Math.round(cy - squareSize / 2);
+          const cornerR = Math.max(Math.round(squareSize * 0.14), 16);
+
           ctx.save();
           ctx.shadowColor = 'rgba(0,0,0,0.18)';
           ctx.shadowBlur = 12;
           ctx.shadowOffsetY = 3;
           ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          if (ctx.roundRect) {
+            ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerR);
+          } else {
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
           ctx.fill();
           ctx.restore();
 
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 6;
           ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          if (ctx.roundRect) {
+            ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerR);
+          } else {
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
           ctx.stroke();
 
           ctx.strokeStyle = 'rgba(0,0,0,0.08)';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          if (ctx.roundRect) {
+            ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerR);
+          } else {
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
           ctx.stroke();
 
           ctx.fillStyle = qr.design?.fgColor || '#00891D';
@@ -342,8 +289,7 @@ export const QRDetails = () => {
   };
 
   const handleEdit = () => {
-    setSelectedQrId(qr.id);
-    setActiveScreen('design-studio');
+    startEditQRCode(qr);
   };
 
   const handleSaveDestinationVersion = () => {
@@ -380,389 +326,21 @@ export const QRDetails = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* =========================================================================
-          VIEW MODE 1: GRID OF ALL BOXES IN CATEGORY (Select QR, Change Request, Rejected)
-          ========================================================================= */}
-      {viewMode === 'grid' && (
-        <>
-          {/* Top Bar: Back to Inventory */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                onClick={() => setActiveScreen('listing')}
-                className="btn btn-secondary btn-sm"
-              >
-                <ArrowLeft size={15} />
-                Back to QR Management
-              </button>
-            </div>
-            <div style={{ fontSize: '12.5px', color: '#6B7280' }}>
-              Click any box below to inspect its details completely in full screen
-            </div>
-          </div>
+      {/* Top Bar: Back to QR Management & Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => setActiveScreen('listing')}
+            className="btn btn-secondary btn-sm"
+            style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <ArrowLeft size={15} />
+            Back to QR Management
+          </button>
+        </div>
 
-          {/* 3 Options QR Governance Selector: Select QR, Change Request, Rejected */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          }}>
-            {/* Category Filter Buttons & Quick Search */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginRight: '4px' }}>
-                  Category:
-                </span>
-
-                {/* Option 1: Select QR */}
-                <button
-                  type="button"
-                  onClick={() => handleCategorySelect('select_qr')}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                    border: categoryFilter === 'select_qr' ? '1.5px solid #00891D' : '1px solid #CBD5E1',
-                    background: categoryFilter === 'select_qr' ? '#F0FDF4' : '#FFFFFF',
-                    color: categoryFilter === 'select_qr' ? '#006B17' : '#475569',
-                  }}
-                >
-                  <QrCode size={14} color={categoryFilter === 'select_qr' ? '#00891D' : '#6B7280'} />
-                  <span>Select QR</span>
-                  <span style={{
-                    fontSize: '11px',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    background: categoryFilter === 'select_qr' ? '#00891D' : '#F1F5F9',
-                    color: categoryFilter === 'select_qr' ? '#FFFFFF' : '#475569',
-                  }}>
-                    {selectAllQrs.length}
-                  </span>
-                </button>
-
-                {/* Option 2: Change Request (Updated: Warm Amber-Orange) */}
-                <button
-                  type="button"
-                  onClick={() => handleCategorySelect('changes')}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                    border: categoryFilter === 'changes' ? '1.5px solid #EA580C' : '1px solid #CBD5E1',
-                    background: categoryFilter === 'changes' ? '#FFF7ED' : '#FFFFFF',
-                    color: categoryFilter === 'changes' ? '#C2410C' : '#475569',
-                  }}
-                >
-                  <AlertTriangle size={14} color={categoryFilter === 'changes' ? '#EA580C' : '#6B7280'} />
-                  <span>Change Request</span>
-                  <span style={{
-                    fontSize: '11px',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    background: categoryFilter === 'changes' ? '#EA580C' : '#F1F5F9',
-                    color: categoryFilter === 'changes' ? '#FFFFFF' : '#475569',
-                  }}>
-                    {changesQrs.length}
-                  </span>
-                </button>
-
-                {/* Option 3: Rejected (Updated: Rich Rose-Crimson) */}
-                <button
-                  type="button"
-                  onClick={() => handleCategorySelect('rejected')}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                    border: categoryFilter === 'rejected' ? '1.5px solid #E11D48' : '1px solid #CBD5E1',
-                    background: categoryFilter === 'rejected' ? '#FFF1F2' : '#FFFFFF',
-                    color: categoryFilter === 'rejected' ? '#BE123C' : '#475569',
-                  }}
-                >
-                  <XCircle size={14} color={categoryFilter === 'rejected' ? '#E11D48' : '#6B7280'} />
-                  <span>Rejected</span>
-                  <span style={{
-                    fontSize: '11px',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    background: categoryFilter === 'rejected' ? '#E11D48' : '#F1F5F9',
-                    color: categoryFilter === 'rejected' ? '#FFFFFF' : '#475569',
-                  }}>
-                    {rejectedQrs.length}
-                  </span>
-                </button>
-              </div>
-
-              {/* Quick Search */}
-              <div style={{ position: 'relative', minWidth: '220px' }}>
-                <Search size={14} color="#9CA3AF" style={{ position: 'absolute', left: '10px', top: '9px' }} />
-                <input
-                  type="text"
-                  placeholder={`Filter in ${categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-control"
-                  style={{ paddingLeft: '30px', fontSize: '12px', height: '32px' }}
-                />
-              </div>
-            </div>
-
-            {/* Display ALL QR Boxes in this Category */}
-            <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px' }}>
-              <div style={{
-                fontSize: '12px',
-                color: '#4B5563',
-                marginBottom: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <span>
-                  Showing all <strong>{currentCategoryQrs.length}</strong> box{currentCategoryQrs.length === 1 ? '' : 'es'} in{' '}
-                  <strong style={{ color: categoryFilter === 'changes' ? '#C2410C' : categoryFilter === 'rejected' ? '#BE123C' : '#00891D' }}>
-                    {categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}
-                  </strong>
-                  {' '}— click any box to open its details completely in full screen:
-                </span>
-              </div>
-
-              {currentCategoryQrs.length === 0 ? (
-                <div style={{
-                  padding: '44px 24px',
-                  textAlign: 'center',
-                  background: '#F9FAFB',
-                  borderRadius: '12px',
-                  border: '1px dashed #E5E7EB',
-                  margin: '10px 0',
-                }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '50%',
-                    background: categoryFilter === 'changes' ? '#ECFDF5' : '#F3F4F6',
-                    color: categoryFilter === 'changes' ? '#00891D' : '#6B7280',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 12px auto',
-                  }}>
-                    {categoryFilter === 'changes' ? <CheckCircle2 size={22} color="#00891D" /> : <HelpCircle size={22} />}
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', marginBottom: '4px' }}>
-                    {categoryFilter === 'changes' ? 'No Change Requests Found' : 'No QR Codes Found'}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6B7280', maxWidth: '400px', margin: '0 auto' }}>
-                    {categoryFilter === 'changes'
-                      ? 'All active and published QR routing destinations currently satisfy operational compliance standards.'
-                      : 'No QR codes found matching this category filter.'}
-                  </div>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
-                  gap: '14px',
-                }}>
-                  {currentCategoryQrs.map((item) => {
-                    let cardBorder = '#E2E8F0';
-                    let cardBg = '#FFFFFF';
-                    let cardHoverBorder = '#00891D';
-                    let tagBg = '#F1F5F9';
-                    let tagColor = '#475569';
-                    let noteBg = '#F8FAFC';
-                    let noteColor = '#334155';
-                    let noteBorder = '#E2E8F0';
-
-                    if (item.status === 'Changes Requested') {
-                      cardBorder = '#FED7AA';
-                      cardBg = '#FFFAF5';
-                      cardHoverBorder = '#EA580C';
-                      tagBg = '#FFEDD5';
-                      tagColor = '#9A3412';
-                      noteBg = '#FFF7ED';
-                      noteColor = '#9A3412';
-                      noteBorder = '#FED7AA';
-                    } else if (item.status === 'Rejected') {
-                      cardBorder = '#FECDD3';
-                      cardBg = '#FFF5F6';
-                      cardHoverBorder = '#E11D48';
-                      tagBg = '#FFE4E6';
-                      tagColor = '#9F1239';
-                      noteBg = '#FFF1F2';
-                      noteColor = '#9F1239';
-                      noteBorder = '#FECDD3';
-                    }
-
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => handleBoxClick(item.id)}
-                        style={{
-                          border: `1.5px solid ${cardBorder}`,
-                          background: cardBg,
-                          borderRadius: '12px',
-                          padding: '16px 18px',
-                          cursor: 'pointer',
-                          transition: 'all 0.18s ease',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          minHeight: '165px',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = cardHoverBorder;
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 14px rgba(0,0,0,0.08)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = cardBorder;
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-                        }}
-                      >
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 700, color: '#374151' }}>
-                              {item.id}
-                            </span>
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              background: tagBg,
-                              color: tagColor,
-                              border: `1px solid ${noteBorder}`,
-                            }}>
-                              {item.status}
-                            </span>
-                          </div>
-
-                          <div style={{
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            color: '#111827',
-                            lineHeight: 1.35,
-                          }}>
-                            {item.name}
-                          </div>
-                          <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '4px' }}>
-                            {item.hubName || item.village || 'Phirangipuram Hub'} · {item.type}
-                          </div>
-                        </div>
-
-                        {item.reviewerComments && (item.status === 'Changes Requested' || item.status === 'Rejected') ? (
-                          <div style={{
-                            fontSize: '11.5px',
-                            color: noteColor,
-                            background: noteBg,
-                            border: `1px solid ${noteBorder}`,
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            lineHeight: 1.4,
-                          }}>
-                            {item.status === 'Rejected' ? '⛔ ' : '⚠️ '}
-                            {item.reviewerComments.replace(/^(Reviewer Feedback:|Rejected by Security Approver:|Rejected by Financial Approver:)\s*/i, '').slice(0, 105)}...
-                          </div>
-                        ) : (
-                          <div style={{
-                            fontSize: '11px',
-                            color: '#6B7280',
-                            fontFamily: 'monospace',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            background: '#F8FAFC',
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                          }}>
-                            /{item.destination?.redirectCode || 'target'} ➔ {item.destination?.fallbackUrl}
-                          </div>
-                        )}
-
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          paddingTop: '8px',
-                          borderTop: '1px solid #F1F5F9',
-                          fontSize: '11.5px',
-                          color: cardHoverBorder,
-                          fontWeight: 700,
-                        }}>
-                          <span>Click to open full-screen details</span>
-                          <span>→</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* =========================================================================
-          VIEW MODE 2: FULL-SCREEN DETAIL OF 1 BOX (Hides all other boxes & data)
-          ========================================================================= */}
-      {viewMode === 'detail' && (
-        <>
-          {/* Top Bar: Back to Category Boxes & Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button
-                onClick={() => setActiveScreen('listing')}
-                className="btn btn-secondary btn-sm"
-                style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <ArrowLeft size={15} />
-                Back to QR Management
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className="btn btn-secondary btn-sm"
-                style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
-                title="View All QR Cards in Grid View"
-              >
-                <Layers size={14} color="#00891D" />
-                All QR Cards Grid ({currentCategoryQrs.length})
-              </button>
-            </div>
-
-            {/* Page 8 Required Actions: Edit, Download, Copy URL, Pause, Archive */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Actions: Edit, Download, Copy URL, Pause/Resume (when applicable), Test Scan, Delete */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={handleEdit}
                 className="btn btn-secondary btn-sm"
@@ -787,7 +365,9 @@ export const QRDetails = () => {
                 {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
                 {copiedLink ? 'Copied' : 'Copy URL'}
               </button>
-              {qr.status !== 'Archived' && (
+
+              {/* Pause / Resume only for Active or Paused lifecycle */}
+              {(qr.status === 'Active' || qr.status === 'Paused') && (
                 <button
                   onClick={() => togglePauseQR(qr.id)}
                   className="btn btn-secondary btn-sm"
@@ -797,43 +377,7 @@ export const QRDetails = () => {
                   {qr.status === 'Active' ? 'Pause' : 'Resume'}
                 </button>
               )}
-              {qr.status === 'Archived' ? (
-                <>
-                  <button
-                    onClick={() => restoreQR(qr.id)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#00891D', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
-                    title="Restore QR Code to Active"
-                  >
-                    <RotateCcw size={14} />
-                    Restore
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`Permanently delete QR code ${qr.id}?`)) {
-                        deleteQR(qr.id);
-                        setActiveScreen('listing');
-                      }
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    title="Delete Permanently"
-                  >
-                    <Trash2 size={14} />
-                    Delete
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => archiveQR(qr.id)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  title="Archive QR Code"
-                >
-                  <Archive size={14} />
-                  Archive
-                </button>
-              )}
+
               <button
                 onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
                 className="btn btn-secondary btn-sm"
@@ -842,253 +386,113 @@ export const QRDetails = () => {
                 <Smartphone size={14} color="#00891D" />
                 Test Scan
               </button>
-            </div>
-          </div>
 
-          {/* QR Navigation & Quick Switcher Strip */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-            padding: '12px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}>
-            {/* Left: Quick Dropdown Switcher with Prev/Next */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>
-                Select QR Code:
-              </label>
-              <select
-                value={qr.id}
-                onChange={(e) => {
-                  setSelectedQrId(e.target.value);
-                  lastQrIdRef.current = e.target.value;
-                  setViewMode('detail');
-                }}
-                className="form-control"
-                style={{ width: '260px', padding: '6px 10px', fontSize: '13px', fontWeight: 600 }}
-              >
-                {qrCodes.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.id} · {item.name} ({item.status})
-                  </option>
-                ))}
-              </select>
-
-              {/* Prev / Next buttons */}
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentIndex = qrCodes.findIndex((q) => q.id === qr.id);
-                    if (currentIndex > 0) {
-                      const prevId = qrCodes[currentIndex - 1].id;
-                      setSelectedQrId(prevId);
-                      lastQrIdRef.current = prevId;
-                    }
-                  }}
-                  disabled={qrCodes.findIndex((q) => q.id === qr.id) <= 0}
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '5px 8px' }}
-                  title="Previous QR Code"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentIndex = qrCodes.findIndex((q) => q.id === qr.id);
-                    if (currentIndex < qrCodes.length - 1) {
-                      const nextId = qrCodes[currentIndex + 1].id;
-                      setSelectedQrId(nextId);
-                      lastQrIdRef.current = nextId;
-                    }
-                  }}
-                  disabled={qrCodes.findIndex((q) => q.id === qr.id) >= qrCodes.length - 1}
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '5px 8px' }}
-                  title="Next QR Code"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Category Filter Quick Switcher */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>Category Cards:</span>
               <button
-                type="button"
-                onClick={() => handleCategorySelect('select_qr')}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #E5E7EB' }}
-              >
-                All ({selectAllQrs.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCategorySelect('changes')}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #FED7AA', color: '#EA580C', background: '#FFF7ED' }}
-              >
-                Changes Requested ({changesQrs.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCategorySelect('rejected')}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '11.5px', padding: '4px 10px', border: '1px solid #FECDD3', color: '#E11D48', background: '#FFF1F2' }}
-              >
-                Rejected ({rejectedQrs.length})
-              </button>
-            </div>
-          </div>
-
-          {/* Selected QR Detail Section Anchor */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '4px 2px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Full-Screen Detail View:
-              </span>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>
-                {qr.id} — {qr.name}
-              </span>
-              <span className={`badge badge-${qr.status?.toLowerCase().replace(/\s+/g, '-')}`} style={{ fontSize: '11px' }}>
-                {qr.status}
-              </span>
-            </div>
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>
-              {qr.hubName || 'Phirangipuram Hub'} · {qr.village}
-            </div>
-          </div>
-
-          {/* Governance Status Reflection Banners (Updated Warm Amber & Rose Colors) */}
-          {qr.status === 'Changes Requested' && (
-            <div style={{
-              background: '#FFF7ED',
-              border: '1px solid #FED7AA',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            }}>
-              <div style={{ display: 'flex', gap: '14px', maxWidth: '780px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '8px',
-                  background: '#FFEDD5',
-                  color: '#EA580C',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#9A3412' }}>
-                    Reviewer Requested Changes (Action Required)
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#C2410C', marginTop: '4px', lineHeight: 1.5 }}>
-                    "{qr.reviewerComments || 'Reviewer requested adjustments to target destination URL, artwork branding, or campaign attribution parameters.'}"
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px' }}>
-                    Status: <span className="badge badge-changes-requested">Changes Requested</span> · Make updates in Design Studio and resubmit for approval.
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleEdit}
-                className="btn btn-primary btn-sm"
-                style={{
-                  background: '#EA580C',
-                  borderColor: '#EA580C',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: 700,
-                  padding: '8px 14px',
-                }}
-              >
-                <Edit3 size={15} />
-                Edit & Resubmit in Design Studio
-              </button>
-            </div>
-          )}
-
-          {qr.status === 'Rejected' && (
-            <div style={{
-              background: '#FFF1F2',
-              border: '1px solid #FECDD3',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            }}>
-              <div style={{ display: 'flex', gap: '14px', maxWidth: '780px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '8px',
-                  background: '#FFE4E6',
-                  color: '#E11D48',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <XCircle size={20} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#9F1239' }}>
-                    QR Code Rejected by Governance Reviewer
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#BE123C', marginTop: '4px', lineHeight: 1.5 }}>
-                    "{qr.reviewerComments || 'Destination or content failed security/compliance checks and cannot be authorized for distribution.'}"
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px' }}>
-                    Status: <span className="badge badge-rejected">Rejected</span> · 🚫 Physical printing & edge redirection are blocked for this code.
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleEdit}
+                onClick={() => requestDeleteQR(qr, () => setActiveScreen('listing'))}
                 className="btn btn-secondary btn-sm"
-                style={{
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: 700,
-                  padding: '8px 14px',
-                  background: '#BE123C',
-                  borderColor: '#BE123C',
-                  color: '#FFFFFF',
-                }}
+                style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Delete Permanently"
               >
-                <RotateCw size={15} />
-                Reconfigure in Design Studio
+                <Trash2 size={14} />
+                Delete
               </button>
+            </div>
+          </div>
+
+          {/* Pending Governance Approval Banner */}
+          {qr.status === 'Pending Approval' && (
+            <div
+              style={{
+                background: '#FFF7ED',
+                border: '1px solid #FED7AA',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flex: '1 1 420px', minWidth: '280px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: '#FFEDD5',
+                    color: '#EA580C',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Clock size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#9A3412' }}>
+                      This QR Code is Pending for Approval
+                    </span>
+                    <span className="badge badge-pending-approval" style={{ fontSize: '11px' }}>
+                      Awaiting Review
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#C2410C', marginTop: '3px' }}>
+                    Verify destination target (<code style={{ background: '#FFEDD5', padding: '2px 6px', borderRadius: '4px', color: '#9A3412', fontWeight: 600 }}>{dest.fallbackUrl || dest.androidUrl || 'No target configured'}</code>) and design specs, then choose an action.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleApprovalAction(qr.id, 'reject', 'Rejected via QR Details');
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    padding: '8px 16px',
+                    background: '#FFFFFF',
+                    borderColor: '#DC2626',
+                    color: '#DC2626',
+                  }}
+                  title="Reject this QR code"
+                >
+                  <XCircle size={15} />
+                  Reject QR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleApprovalAction(qr.id, 'approve', 'Accepted & activated via QR Details');
+                  }}
+                  className="btn btn-primary"
+                  style={{
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    padding: '8px 18px',
+                    background: '#00891D',
+                    borderColor: '#00891D',
+                    color: '#FFFFFF',
+                    boxShadow: '0 2px 6px rgba(0,137,29,0.2)',
+                  }}
+                  title="Accept and activate this pending QR code"
+                >
+                  <CheckCircle2 size={15} />
+                  Accept & Activate QR
+                </button>
+              </div>
             </div>
           )}
 
@@ -1170,47 +574,20 @@ export const QRDetails = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '12.5px', color: '#4B5563' }}>
-              <div>Type: <strong>{qr.type}</strong></div>
-              <div>
-                Campaign:{' '}
-                <strong
-                  onClick={() => {
-                    const camp = campaigns?.find((c) => c.id === qr.campaignId || c.name === qr.campaign);
-                    if (camp) {
-                      setSelectedCampaignId(camp.id);
-                      setActiveScreen('campaigns');
-                    }
-                  }}
-                  style={{ color: '#00891D', cursor: 'pointer', textDecoration: 'underline' }}
-                  title="Open Campaign entity page"
-                >
-                  {qr.campaign || 'Direct'}
-                </strong>
-              </div>
-              <div>Hub: <strong>{qr.hubName || 'Phirangipuram Hub'}</strong></div>
-              <div>Owner: <strong>{qr.owner}</strong> ({qr.department})</div>
-              <div>Created: <strong>{qr.createdAt || '2026-03-01'}</strong></div>
-              <div>
-                Expiry: {qr.expiryDate === 'Never Ending' || !qr.expiryDate || qr.expiryDate === 'Unlimited' ? (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    background: '#F0FDF4',
-                    color: '#15803D',
-                    border: '1px solid #BBF7D0',
-                    borderRadius: '10px',
-                    padding: '1px 6px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    marginLeft: '4px',
-                  }}>
-                    ∞ Never Ending
-                  </span>
-                ) : (
-                  <strong>{qr.expiryDate}</strong>
-                )}
-              </div>
+              <div>Routing Target: <strong style={{ color: '#111827' }}>{dest.fallbackUrl || dest.androidUrl || 'Direct Destination'}</strong></div>
+              <div>Attribution: <strong style={{ color: '#00891D' }}>Enabled (Mobile Deep Link)</strong></div>
+              <div>Lifespan: <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                background: '#F0FDF4',
+                color: '#15803D',
+                border: '1px solid #BBF7D0',
+                borderRadius: '10px',
+                padding: '1px 6px',
+                fontSize: '11px',
+                fontWeight: 700,
+              }}>∞ Permanent Dynamic QR</span></div>
             </div>
           </div>
 
@@ -1229,7 +606,7 @@ export const QRDetails = () => {
               {metrics.scans.toLocaleString()}
             </div>
             <div style={{ fontSize: '12px', color: '#006B17', fontWeight: 600 }}>
-              {metrics.verifiedRegistrations} Registrations ({metrics.conversionRate || 0}%)
+              {(metrics.uniqueVisitors || 0).toLocaleString()} Unique Devices Tracked
             </div>
           </div>
         </div>
@@ -1262,20 +639,20 @@ export const QRDetails = () => {
             <h3 className="vk-card-title">Performance Summary</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginTop: '14px' }}>
               <div style={{ padding: '12px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Unique Visitors</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>Unique Devices</div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827' }}>{(metrics.uniqueVisitors || 0).toLocaleString()}</div>
               </div>
               <div style={{ padding: '12px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Verified App Installs</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#00891D' }}>{(metrics.verifiedRegistrations || 0).toLocaleString()}</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>Total Scans</div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#00891D' }}>{(metrics.scans || 0).toLocaleString()}</div>
               </div>
               <div style={{ padding: '12px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>First Grocery Orders</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>First Orders</div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: '#00A322' }}>{(metrics.firstOrders || 0).toLocaleString()}</div>
               </div>
               <div style={{ padding: '12px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Conversion Rate</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#00891D' }}>{metrics.conversionRate || 0}%</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>Edge Routing Reliability</div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#00891D' }}>99.98%</div>
               </div>
             </div>
           </div>
@@ -1284,8 +661,8 @@ export const QRDetails = () => {
             <h3 className="vk-card-title">Design & Artwork Specifications</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '6px' }}>
-                <span style={{ color: '#6B7280' }}>Template</span>
-                <span style={{ fontWeight: 600 }}>{qr.design?.template || 'VillagKart Branded'}</span>
+                <span style={{ color: '#6B7280' }}>Badge Style</span>
+                <span style={{ fontWeight: 600 }}>Square Emblem Badge</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '6px' }}>
                 <span style={{ color: '#6B7280' }}>Brand Foreground</span>
@@ -1531,8 +908,6 @@ export const QRDetails = () => {
             )}
           </div>
         </div>
-      )}
-        </>
       )}
     </div>
   );

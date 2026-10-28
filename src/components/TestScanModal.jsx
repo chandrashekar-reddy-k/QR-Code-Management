@@ -11,7 +11,14 @@ import {
 } from 'lucide-react';
 
 export const TestScanModal = () => {
-  const { testScanModal, setTestScanModal, simulateScan } = useQR();
+  const {
+    testScanModal,
+    setTestScanModal,
+    simulateScan,
+    setActiveScreen,
+    setSelectedQrId,
+    setDetailsViewMode,
+  } = useQR();
   const [simulatedDevice, setSimulatedDevice] = useState('Android 14 (Redmi 12 5G)');
   const [triggerConversion, setTriggerConversion] = useState(true);
   const [scanStatus, setScanStatus] = useState('scanning'); // 'scanning', 'redirected'
@@ -35,9 +42,6 @@ export const TestScanModal = () => {
   const handleSimulate = () => {
     setScanStatus('redirected');
     simulateScan(qr, simulatedDevice, triggerConversion);
-    if (resolvedUrl && resolvedUrl.startsWith('http') && !isBot) {
-      window.open(resolvedUrl, '_blank');
-    }
   };
 
   const handleClose = () => {
@@ -271,32 +275,80 @@ export const TestScanModal = () => {
           {scanStatus === 'redirected' && (
             <div style={{
               marginTop: '16px',
-              padding: '12px 16px',
-              background: '#E8F5EA',
-              border: '1px solid #A5D6A7',
-              borderRadius: '8px',
+              padding: '14px 16px',
+              background: '#F0FDF4',
+              border: '1.5px solid #BBF7D0',
+              borderRadius: '10px',
               display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: '#006B17',
-              fontSize: '13px'
+              flexDirection: 'column',
+              gap: '12px',
+              color: '#166534',
+              fontSize: '13px',
+              boxShadow: '0 2px 6px rgba(0, 137, 29, 0.08)',
             }}>
-              <CheckCircle2 size={18} color="#00891D" />
-              <div>
-                <strong>Scan Successfully Executed & Recorded!</strong> Event logged in live Scan History with IP geo and conversion attribution.
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <CheckCircle2 size={18} color="#00891D" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#15803D' }}>
+                    Scan Successfully Executed & Recorded!
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#4B5563', marginTop: '2px', lineHeight: 1.4 }}>
+                    Logged in live <strong>Scan History</strong> for device <code>{simulatedDevice.split(' ')[0]}</code> with IP geo and verified attribution.
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation workflow shortcuts */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px solid #DCFCE7' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    setActiveScreen('scan-history');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ background: '#FFFFFF', color: '#00891D', borderColor: '#BBF7D0', fontSize: '11.5px', fontWeight: 700 }}
+                >
+                  View in Scan History Log ➔
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    setSelectedQrId(qr.id);
+                    setDetailsViewMode('detail');
+                    setActiveScreen('details');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ background: '#FFFFFF', color: '#00891D', borderColor: '#BBF7D0', fontSize: '11.5px', fontWeight: 700 }}
+                >
+                  Inspect Full QR Details ➔
+                </button>
               </div>
             </div>
           )}
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={handleClose} className="btn btn-secondary btn-sm">
-            Close
+            {scanStatus === 'redirected' ? 'Done & Close' : 'Close'}
           </button>
-          <button onClick={handleSimulate} className="btn btn-primary btn-sm">
-            <Radio size={14} />
-            Simulate Scan Event
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {scanStatus === 'redirected' && (
+              <button
+                type="button"
+                onClick={() => setScanStatus('scanning')}
+                className="btn btn-ghost btn-sm"
+                style={{ color: '#00891D', fontWeight: 600 }}
+              >
+                Reset Simulator
+              </button>
+            )}
+            <button onClick={handleSimulate} className="btn btn-primary btn-sm" style={{ fontWeight: 700 }}>
+              <Radio size={14} />
+              {scanStatus === 'redirected' ? 'Simulate Another Scan' : 'Simulate Scan Event'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

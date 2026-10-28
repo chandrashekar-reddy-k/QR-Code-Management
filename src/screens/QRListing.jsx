@@ -1,18 +1,14 @@
 import React, { useState, useMemo } from 'react';
+import QRCode from 'qrcode';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
-import { INITIAL_USERS } from '../data/mockData';
 import {
   Search,
-  Filter,
   Plus,
-  Smartphone,
   Download,
   Pause,
   Play,
-  Archive,
   ExternalLink,
-  MoreVertical,
   CheckSquare,
   Square,
   Eye,
@@ -20,54 +16,48 @@ import {
   FileSpreadsheet,
   AlertCircle,
   Edit2,
-  UserPlus,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
-  Check,
-  X,
 } from 'lucide-react';
 
 export const QRListing = () => {
   const {
     qrCodes,
-    setQrCodes,
     setActiveScreen,
     setSelectedQrId,
     setDetailsViewMode,
-    selectedCampaignId,
-    setSelectedCampaignId,
     startNewQRCode,
-    campaigns,
-    setWizardData,
-    setWizardStep,
+    startEditQRCode,
     togglePauseQR,
-    archiveQR,
-    restoreQR,
-    deleteQR,
+    requestDeleteQR,
     setTestScanModal,
     showToast,
-    hasPermission,
     currentRole,
+    listingStatusFilter,
+    setListingStatusFilter,
   } = useQR();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [hubFilter, setHubFilter] = useState('all');
-  const [villageFilter, setVillageFilter] = useState('all');
-  const [campaignFilter, setCampaignFilter] = useState('all');
+  const statusFilter = listingStatusFilter;
+  const setStatusFilter = (val) => {
+    setListingStatusFilter(val);
+    setCurrentPage(1);
+  };
   const [selectedIds, setSelectedIds] = useState([]);
+
+  // Counts for Lifecycle Tabs
+  const countAll = qrCodes.length;
+  const countActive = qrCodes.filter((q) => q.status === 'Active').length;
+  const countDraft = qrCodes.filter((q) => q.status === 'Draft').length;
+  const countPending = qrCodes.filter((q) => q.status === 'Pending Approval').length;
+  const countPaused = qrCodes.filter((q) => q.status === 'Paused').length;
+  const countExpired = qrCodes.filter((q) => q.status === 'Expired').length;
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
 
-  // Bulk Assign Owner Modal State
-  const [isAssignOwnerOpen, setIsAssignOwnerOpen] = useState(false);
-  const [targetOwner, setTargetOwner] = useState(INITIAL_USERS[1]?.name || 'Anita Rao');
-
-  // Filter logic
+  // Filter logic: Active, Draft, Pending Approval, Paused, Expired
   const filteredList = useMemo(() => {
     return qrCodes.filter((item) => {
       // Role scope filter
@@ -78,24 +68,23 @@ export const QRListing = () => {
         return false;
       }
 
+      const term = searchQuery.toLowerCase().trim();
       const matchesSearch =
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.campaign && item.campaign.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.owner.toLowerCase().includes(searchQuery.toLowerCase());
+        !term ||
+        item.name.toLowerCase().includes(term) ||
+        item.id.toLowerCase().includes(term) ||
+        (item.destination?.redirectCode && item.destination.redirectCode.toLowerCase().includes(term)) ||
+        (item.destination?.fallbackUrl && item.destination.fallbackUrl.toLowerCase().includes(term)) ||
+        (item.destination?.androidUrl && item.destination.androidUrl.toLowerCase().includes(term));
 
-      const matchesType = typeFilter === 'all' || item.type === typeFilter;
       const matchesStatus =
         statusFilter === 'all'
-          ? item.status !== 'Archived'
+          ? true
           : item.status === statusFilter;
-      const matchesHub = hubFilter === 'all' || item.hubId === hubFilter || (item.hubName && item.hubName.includes(hubFilter));
-      const matchesVillage = villageFilter === 'all' || (item.village && item.village.includes(villageFilter));
-      const matchesCampaign = campaignFilter === 'all' || item.campaignId === campaignFilter || (item.campaign && item.campaign.includes(campaignFilter));
 
-      return matchesSearch && matchesType && matchesStatus && matchesHub && matchesVillage && matchesCampaign;
+      return matchesSearch && matchesStatus;
     });
-  }, [qrCodes, searchQuery, typeFilter, statusFilter, hubFilter, villageFilter, campaignFilter, currentRole]);
+  }, [qrCodes, searchQuery, statusFilter, currentRole]);
 
   // Total pages and sliced data for pagination
   const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
@@ -127,31 +116,16 @@ export const QRListing = () => {
     setSelectedIds([]);
   };
 
-  const handleBulkArchive = () => {
-    selectedIds.forEach((id) => archiveQR(id));
-    showToast(`Bulk archived ${selectedIds.length} QR codes.`);
-    setSelectedIds([]);
-  };
-
-  const handleBulkAssignOwnerSubmit = () => {
-    setQrCodes((prev) =>
-      prev.map((q) => (selectedIds.includes(q.id) ? { ...q, owner: targetOwner } : q))
-    );
-    showToast(`Assigned ${selectedIds.length} QR codes to ${targetOwner}.`);
-    setIsAssignOwnerOpen(false);
-    setSelectedIds([]);
-  };
-
   const handleBulkExportCSV = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      ['ID,Name,Type,Status,Campaign,Hub,Owner,Scans,Registrations,Orders']
+      ['ID,Name,Destination,Status,Scans,Registrations']
         .concat(
           filteredList
             .filter((q) => selectedIds.length === 0 || selectedIds.includes(q.id))
             .map(
               (q) =>
-                `"${q.id}","${q.name}","${q.type}","${q.status}","${q.campaign || ''}","${q.hubName || ''}","${q.owner || ''}",${q.metrics?.scans || 0},${q.metrics?.verifiedRegistrations || 0},${q.metrics?.firstOrders || 0}`
+                `"${q.id}","${q.name}","${q.destination?.fallbackUrl || q.destination?.androidUrl || ''}","${q.status}",${q.metrics?.scans || 0},${q.metrics?.verifiedRegistrations || 0}`
             )
         )
         .join('\n');
@@ -165,16 +139,87 @@ export const QRListing = () => {
     showToast('Exported CSV dataset successfully!');
   };
 
-  // Individual Row Actions
+  // Individual Row Actions: Directly download high-res QR asset
   const handleDownloadQR = (qr) => {
-    showToast(`Generating downloadable print & digital package for ${qr.name}...`);
-    setSelectedQrId(qr.id);
-    setActiveScreen('details');
+    if (!qr) return;
+    const targetUrl =
+      qr.destination?.fallbackUrl ||
+      qr.destination?.androidUrl ||
+      `https://qr.villagkart.com/${qr.destination?.redirectCode || qr.id}`;
+
+    const canvas = document.createElement('canvas');
+    QRCode.toCanvas(
+      canvas,
+      targetUrl,
+      {
+        width: 1000,
+        margin: 2,
+        color: {
+          dark: qr.design?.fgColor || '#00891D',
+          light: qr.design?.bgColor || '#FFFFFF',
+        },
+        errorCorrectionLevel: qr.design?.showLogo ? 'H' : qr.design?.errorCorrection || 'Q',
+      },
+      (err) => {
+        if (err) {
+          showToast(`Error generating download asset: ${err.message}`, 'error');
+          return;
+        }
+
+        // Draw centered VK brand emblem if showLogo is true
+        if (qr.design?.showLogo ?? true) {
+          const ctx = canvas.getContext('2d');
+          const cx = 500;
+          const cy = 500;
+          const squareSize = Math.round(1000 * 0.24);
+          const squareX = Math.round(cx - squareSize / 2);
+          const squareY = Math.round(cy - squareSize / 2);
+          const cornerR = Math.max(Math.round(squareSize * 0.14), 14);
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.16)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerR);
+          } else {
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
+          ctx.fill();
+          ctx.restore();
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerR);
+          } else {
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
+          ctx.stroke();
+
+          ctx.fillStyle = qr.design?.fgColor || '#00891D';
+          ctx.font = '800 110px "Segoe UI", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('VK', cx, cy);
+        }
+
+        const link = document.createElement('a');
+        link.download = `${(qr.name || qr.id).toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.png`;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast(`Downloaded QR asset for ${qr.name}!`);
+      }
+    );
   };
 
   const handleEditQR = (qr) => {
-    setSelectedQrId(qr.id);
-    setActiveScreen('design-studio');
+    startEditQRCode(qr);
   };
 
   return (
@@ -189,25 +234,80 @@ export const QRListing = () => {
             </p>
           </div>
           <button
+            id="btn-create-qr"
             onClick={() => startNewQRCode()}
-            className="btn btn-primary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, padding: '8px 16px', fontSize: '13px' }}
           >
-            <Plus size={15} />
-            <span>Create QR Code</span>
+            <Plus size={16} />
+            <span>Create QR</span>
           </button>
         </div>
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="vk-card" style={{ padding: '16px 20px' }}>
+      <div className="vk-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Lifecycle Status Tabs: All, Active, Paused, Pending for Approval */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          overflowX: 'auto',
+          paddingBottom: '4px',
+          borderBottom: '1px solid #F1F5F9',
+        }}>
+          {[
+            { id: 'all', label: 'All QR Codes', count: countAll, color: '#374151', bg: '#F3F4F6' },
+            { id: 'Active', label: 'Active', count: countActive, color: '#15803D', bg: '#DCFCE7' },
+            { id: 'Draft', label: 'Drafts', count: countDraft, color: '#4338CA', bg: '#EEF2FF' },
+            { id: 'Pending Approval', label: 'Pending for Approval', count: countPending, color: '#C2410C', bg: '#FFEDD5', isAlert: countPending > 0 },
+            { id: 'Paused', label: 'Paused', count: countPaused, color: '#92400E', bg: '#FEF3C7' },
+            { id: 'Expired', label: 'Expired', count: countExpired, color: '#B91C1C', bg: '#FEE2E2' },
+          ].map((tab) => {
+            const isActive = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: isActive ? 700 : 500,
+                  border: isActive ? '1.5px solid #00891D' : '1px solid #E5E7EB',
+                  background: isActive ? '#F0FDF4' : '#FFFFFF',
+                  color: isActive ? '#006B17' : '#4B5563',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>{tab.label}</span>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  background: tab.isAlert ? tab.bg : isActive ? '#00891D' : '#F3F4F6',
+                  color: tab.isAlert ? tab.color : isActive ? '#FFFFFF' : '#4B5563',
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           {/* Search box */}
           <div style={{ position: 'relative', flex: '1 1 300px', minWidth: '260px' }}>
             <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Search by QR name, ID, campaign or owner..."
+              placeholder="Search by QR name, unique ID, or destination URL..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -218,121 +318,13 @@ export const QRListing = () => {
             />
           </div>
 
-          {/* Type Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>QR Type:</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="form-control"
-              style={{ width: '160px', padding: '7px 10px', fontSize: '13px' }}
-            >
-              <option value="all">All Types (7)</option>
-              <option value="App Download">App Download</option>
-              <option value="Campaign">Campaign</option>
-              <option value="Vehicle">Vehicle (Shop-on-Wheels)</option>
-              <option value="Referral">Referral</option>
-              <option value="Product">Product Catalogue</option>
-              <option value="Feedback">Feedback</option>
-              <option value="Payment">Payment (UPI)</option>
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="form-control"
-              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
-            >
-              <option value="all">All Active & Review</option>
-              <option value="Active">Active</option>
-              <option value="Pending Approval">Pending Approval</option>
-              <option value="Changes Requested">Changes Requested</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Draft">Draft</option>
-              <option value="Paused">Paused</option>
-              <option value="Expired">Expired</option>
-              <option value="Archived">Archived ({qrCodes.filter((q) => q.status === 'Archived').length})</option>
-            </select>
-          </div>
-
-          {/* Hub / Territory Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Hub / Territory:</label>
-            <select
-              value={hubFilter}
-              onChange={(e) => {
-                setHubFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="form-control"
-              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
-            >
-              <option value="all">Select All</option>
-              <option value="HUB-01">Phirangipuram Hub</option>
-              <option value="HUB-02">Guntur Central Hub</option>
-              <option value="HUB-03">Tenali Rural Hub</option>
-              <option value="HUB-04">Narasaraopet Hub</option>
-              <option value="HUB-05">Bapatla Coastal Hub</option>
-            </select>
-          </div>
-
-          {/* Village Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Village:</label>
-            <select
-              value={villageFilter}
-              onChange={(e) => {
-                setVillageFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="form-control"
-              style={{ width: '140px', padding: '7px 10px', fontSize: '13px' }}
-            >
-              <option value="all">Select All</option>
-              <option value="Phirangipuram">Phirangipuram Village</option>
-              <option value="Prattipadu">Prattipadu Village</option>
-              <option value="Siripuram">Siripuram Village</option>
-              <option value="Tenali">Tenali Rural</option>
-              <option value="Bapatla">Bapatla Coastal</option>
-            </select>
-          </div>
-
-          {/* Campaign Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>Campaign:</label>
-            <select
-              value={campaignFilter}
-              onChange={(e) => {
-                setCampaignFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="form-control"
-              style={{ width: '150px', padding: '7px 10px', fontSize: '13px' }}
-            >
-              <option value="all">Select All</option>
-              {campaigns?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Export Action button */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '12.5px', color: '#6B7280', fontWeight: 500 }}>
+              Showing {filteredList.length} of {qrCodes.length} QR codes
+            </span>
             <button onClick={handleBulkExportCSV} className="btn btn-secondary btn-sm" title="Export CSV summary of QR codes">
               <FileSpreadsheet size={15} />
-              Export
+              Export CSV
             </button>
           </div>
         </div>
@@ -356,17 +348,9 @@ export const QRListing = () => {
               ✓ {selectedIds.length} QR code{selectedIds.length > 1 ? 's' : ''} selected
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={() => setIsAssignOwnerOpen(true)} className="btn btn-secondary btn-sm">
-                <UserPlus size={13} />
-                Assign Owner
-              </button>
               <button onClick={handleBulkPause} className="btn btn-secondary btn-sm">
                 <Pause size={13} />
                 Pause
-              </button>
-              <button onClick={handleBulkArchive} className="btn btn-secondary btn-sm" style={{ color: '#DC2626' }}>
-                <Archive size={13} />
-                Archive
               </button>
               <button onClick={handleBulkExportCSV} className="btn btn-secondary btn-sm">
                 <Download size={13} />
@@ -402,23 +386,16 @@ export const QRListing = () => {
                 </th>
                 <th>QR Preview</th>
                 <th>Name & Unique ID</th>
-                <th>Type</th>
                 <th>Destination</th>
-                <th>Campaign</th>
-                <th>Territory</th>
-                <th>Owner</th>
-                <th>Status</th>
-                <th>Expiry</th>
+                <th style={{ minWidth: '170px' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Scans</th>
-                <th style={{ textAlign: 'center' }}>Conversions</th>
-                <th>Last Modified</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={14} style={{ textAlign: 'center', padding: '48px 20px' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px' }}>
                     <div style={{ maxWidth: '380px', margin: '0 auto', color: '#6B7280' }}>
                       <AlertCircle size={36} color="#9CA3AF" style={{ marginBottom: '10px' }} />
                       <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>No QR codes found</div>
@@ -428,13 +405,12 @@ export const QRListing = () => {
                       <button
                         onClick={() => {
                           setSearchQuery('');
-                          setTypeFilter('all');
                           setStatusFilter('all');
                           setCurrentPage(1);
                         }}
                         className="btn btn-secondary btn-sm"
                       >
-                        Clear all filters
+                        Clear search and filters
                       </button>
                     </div>
                   </td>
@@ -496,7 +472,7 @@ export const QRListing = () => {
                             setDetailsViewMode('detail');
                             setActiveScreen('details');
                           }}
-                          style={{ fontWeight: 700, color: '#00891D', cursor: 'pointer', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          style={{ fontWeight: 700, color: '#00891D', cursor: 'pointer', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           title={qr.name}
                         >
                           {qr.name}
@@ -506,16 +482,9 @@ export const QRListing = () => {
                         </div>
                       </td>
 
-                      {/* Type */}
-                      <td>
-                        <span className="badge badge-outline" style={{ fontWeight: 600 }}>
-                          {qr.type}
-                        </span>
-                      </td>
-
                       {/* Destination */}
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxWidth: '165px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxWidth: '240px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <code style={{ fontSize: '11px', color: '#00891D', background: '#E8F5EA', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
                               /{qr.destination?.redirectCode || 'target'}
@@ -548,72 +517,68 @@ export const QRListing = () => {
                         </div>
                       </td>
 
-                      {/* Campaign */}
-                      <td>
-                        <div
-                          onClick={() => {
-                            const camp = campaigns?.find((c) => c.id === qr.campaignId || c.name === qr.campaign);
-                            if (camp) {
-                              setSelectedCampaignId(camp.id);
-                              setActiveScreen('campaigns');
-                            }
-                          }}
-                          style={{
-                            fontWeight: 600,
-                            color: '#111827',
-                            maxWidth: '130px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            cursor: 'pointer',
-                          }}
-                          title={`Click to view campaign: ${qr.campaign || 'Direct Distribution'}`}
-                        >
-                          {qr.campaign || 'Direct Distribution'}
-                        </div>
-                      </td>
-
-                      {/* Territory */}
-                      <td>
-                        <div style={{ fontSize: '12px', color: '#374151' }}>
-                          {qr.hubName || 'Phirangipuram Hub'}
-                        </div>
-                      </td>
-
-                      {/* Owner */}
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#374151' }}>{qr.owner}</div>
-                        <div style={{ fontSize: '10.5px', color: '#9CA3AF' }}>{qr.department}</div>
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        <span className={`badge badge-${qr.status?.toLowerCase().replace(' ', '-')}`}>
-                          {qr.status}
-                        </span>
-                      </td>
-
-                      {/* Expiry */}
-                      <td>
-                        {qr.expiryDate === 'Never Ending' || !qr.expiryDate || qr.expiryDate === 'Unlimited' ? (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: '#F0FDF4',
-                            color: '#15803D',
-                            border: '1px solid #BBF7D0',
-                            borderRadius: '12px',
-                            padding: '2px 8px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                          }}>
-                            ∞ Never Ending
+                      {/* Status Column: Keep only Active, Paused, and Pending for Approval */}
+                      <td style={{ verticalAlign: 'middle' }}>
+                        {qr.status === 'Pending Approval' ? (
+                          <span
+                            className="badge badge-pending"
+                            style={{
+                              fontSize: '11px',
+                              padding: '3px 9px',
+                              fontWeight: 700,
+                              background: '#FFEDD5',
+                              color: '#C2410C',
+                              border: '1px solid #FDBA74',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                            }}
+                            title="Pending Governance Review — click View icon in Actions to inspect and accept"
+                          >
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EA580C' }} />
+                            Pending for Approval
+                          </span>
+                        ) : qr.status === 'Paused' ? (
+                          <span
+                            className="badge badge-paused"
+                            style={{
+                              fontSize: '11px',
+                              padding: '3px 9px',
+                              fontWeight: 700,
+                              background: '#FEF3C7',
+                              color: '#92400E',
+                              border: '1px solid #FCD34D',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                            }}
+                            title="Traffic Temporarily Paused"
+                          >
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#D97706' }} />
+                            Paused
                           </span>
                         ) : (
-                          <div style={{ fontSize: '11.5px', color: '#6B7280' }}>
-                            {qr.expiryDate}
-                          </div>
+                          <span
+                            className="badge badge-active"
+                            style={{
+                              fontSize: '11px',
+                              padding: '3px 9px',
+                              fontWeight: 700,
+                              background: '#DCFCE7',
+                              color: '#15803D',
+                              border: '1px solid #86EFAC',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                            }}
+                            title="Active Dynamic Traffic"
+                          >
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A' }} />
+                            Active
+                          </span>
                         )}
                       </td>
 
@@ -624,35 +589,26 @@ export const QRListing = () => {
                         </div>
                       </td>
 
-                      {/* Conversions */}
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '11.5px', color: '#00891D', fontWeight: 700, textAlign: 'center' }}>
-                          {(qr.metrics?.verifiedRegistrations || 0).toLocaleString()}
-                        </div>
-                      </td>
-
-                      {/* Last Modified */}
-                      <td>
-                        <div style={{ fontSize: '11.5px', color: '#4B5563', whiteSpace: 'nowrap' }}>
-                          {qr.lastModified}
-                        </div>
-                      </td>
-
-                      {/* Row Actions: View Details, Download, Edit, Pause, Archive */}
+                      {/* Row Actions: View Details, Download, Edit, Pause, Delete (Uniform for all rows) */}
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+
                           {/* View Details */}
                           <button
+                            id={`btn-view-${qr.id}`}
                             onClick={() => {
                               setSelectedQrId(qr.id);
                               setDetailsViewMode('detail');
                               setActiveScreen('details');
                             }}
                             className="btn btn-ghost btn-sm"
-                            style={{ padding: '5px' }}
-                            title="View Details"
+                            style={{
+                              padding: '5px',
+                              ...(qr.status === 'Pending Approval' ? { background: '#FFEDD5', color: '#C2410C', border: '1px solid #FDBA74', borderRadius: '6px' } : {}),
+                            }}
+                            title={qr.status === 'Pending Approval' ? 'View & Accept Pending QR Code' : 'View Details'}
                           >
-                            <Eye size={14} color="#00891D" />
+                            <Eye size={14} color={qr.status === 'Pending Approval' ? '#C2410C' : '#00891D'} />
                           </button>
 
                           {/* Download */}
@@ -676,49 +632,24 @@ export const QRListing = () => {
                           </button>
 
                           {/* Pause / Resume */}
-                          {qr.status !== 'Archived' && (
-                            <button
-                              onClick={() => togglePauseQR(qr.id)}
-                              className="btn btn-ghost btn-sm"
-                              style={{ padding: '5px' }}
-                              title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
-                            >
-                              {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => togglePauseQR(qr.id)}
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: '5px' }}
+                            title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
+                          >
+                            {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
+                          </button>
 
-                          {/* Archive / Restore / Delete */}
-                          {qr.status === 'Archived' ? (
-                            <>
-                              <button
-                                onClick={() => restoreQR(qr.id)}
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: '5px' }}
-                                title="Restore QR Code to Active"
-                              >
-                                <RotateCcw size={14} color="#00891D" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Are you sure you want to permanently delete QR code ${qr.id}?`)) {
-                                    deleteQR(qr.id);
-                                  }
-                                }}
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: '5px' }}
-                                title="Delete Permanently"
-                              >
-                                <Trash2 size={14} color="#DC2626" />
-                              </button>
-                            </>
-                          ) : (
+                          {/* Delete */}
+                          {(currentRole === 'Admin' || qr.status === 'Draft' || qr.status === 'Rejected') && (
                             <button
-                              onClick={() => archiveQR(qr.id)}
+                              onClick={() => requestDeleteQR(qr)}
                               className="btn btn-ghost btn-sm"
                               style={{ padding: '5px' }}
-                              title="Archive QR"
+                              title="Delete QR Permanently"
                             >
-                              <Archive size={14} color="#DC2626" />
+                              <Trash2 size={14} color="#DC2626" />
                             </button>
                           )}
                         </div>
@@ -798,50 +729,6 @@ export const QRListing = () => {
           </div>
         </div>
       </div>
-
-      {/* Bulk Assign Owner Modal */}
-      {isAssignOwnerOpen && (
-        <div className="modal-overlay" onClick={() => setIsAssignOwnerOpen(false)}>
-          <div className="modal-card" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserPlus size={18} color="#00891D" />
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Assign Owner</h3>
-              </div>
-              <button onClick={() => setIsAssignOwnerOpen(false)} className="btn btn-ghost" style={{ padding: '4px' }}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#4B5563' }}>
-                Assign <strong>{selectedIds.length}</strong> selected QR code{selectedIds.length > 1 ? 's' : ''} to an authorized team member:
-              </p>
-              <div className="form-group">
-                <label className="form-label">Select Authorized Owner</label>
-                <select
-                  value={targetOwner}
-                  onChange={(e) => setTargetOwner(e.target.value)}
-                  className="form-control"
-                >
-                  {INITIAL_USERS.map((u) => (
-                    <option key={u.id} value={u.name}>
-                      {u.name} ({u.role} · {u.department})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setIsAssignOwnerOpen(false)} className="btn btn-secondary btn-sm">
-                Cancel
-              </button>
-              <button onClick={handleBulkAssignOwnerSubmit} className="btn btn-primary btn-sm">
-                Confirm Assignment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

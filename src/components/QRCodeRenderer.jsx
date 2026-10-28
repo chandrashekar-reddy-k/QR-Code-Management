@@ -218,17 +218,24 @@ export const QRCodeRenderer = ({
               const drawY = Math.round(centerY - drawH / 2);
               ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
             } else {
-              // Compact circular white background (tight radius: 13.5% of QR code width)
-              const circleRadius = Math.round(size * 0.135);
+              // Clean square white background aligned with QR matrix geometry
+              const squareSize = Math.round(size * 0.25);
+              const squareX = Math.round(centerX - squareSize / 2);
+              const squareY = Math.round(centerY - squareSize / 2);
+              const cornerRadius = Math.max(Math.round(squareSize * 0.14), 4); // subtle rounded square
 
               // Subtle shadow for clean contrast
               ctx.save();
-              ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
               ctx.shadowBlur = 3;
               ctx.shadowOffsetY = 1;
               ctx.fillStyle = '#FFFFFF';
               ctx.beginPath();
-              ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+              if (ctx.roundRect) {
+                ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+              } else {
+                ctx.rect(squareX, squareY, squareSize, squareSize);
+              }
               ctx.fill();
               ctx.restore();
 
@@ -236,18 +243,26 @@ export const QRCodeRenderer = ({
               ctx.strokeStyle = '#FFFFFF';
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+              if (ctx.roundRect) {
+                ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+              } else {
+                ctx.rect(squareX, squareY, squareSize, squareSize);
+              }
               ctx.stroke();
 
               // Clean outline
               ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
               ctx.lineWidth = 1;
               ctx.beginPath();
-              ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+              if (ctx.roundRect) {
+                ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+              } else {
+                ctx.rect(squareX, squareY, squareSize, squareSize);
+              }
               ctx.stroke();
 
-              // Larger logo filling the circle snugly (fills ~82% of circle diameter)
-              const maxDim = Math.round(circleRadius * 1.82);
+              // Prominent logo filling the square cleanly
+              const maxDim = Math.round(squareSize * 0.82);
               let drawW = maxDim;
               let drawH = drawW / aspect;
               if (drawH > maxDim) {
@@ -259,33 +274,48 @@ export const QRCodeRenderer = ({
               ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
             }
           } else {
-            // Compact VillagKart fallback emblem badge with large bold VK text
-            const circleRadius = Math.round(size * 0.135);
+            // Clean VillagKart fallback square badge with large bold VK text
+            const squareSize = Math.round(size * 0.25);
+            const squareX = Math.round(centerX - squareSize / 2);
+            const squareY = Math.round(centerY - squareSize / 2);
+            const cornerRadius = Math.max(Math.round(squareSize * 0.14), 4);
 
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
             ctx.shadowBlur = 3;
             ctx.shadowOffsetY = 1;
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
-            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            if (ctx.roundRect) {
+              ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+            } else {
+              ctx.rect(squareX, squareY, squareSize, squareSize);
+            }
             ctx.fill();
             ctx.restore();
 
             ctx.strokeStyle = '#FFFFFF';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            if (ctx.roundRect) {
+              ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+            } else {
+              ctx.rect(squareX, squareY, squareSize, squareSize);
+            }
             ctx.stroke();
 
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            if (ctx.roundRect) {
+              ctx.roundRect(squareX, squareY, squareSize, squareSize, cornerRadius);
+            } else {
+              ctx.rect(squareX, squareY, squareSize, squareSize);
+            }
             ctx.stroke();
 
             ctx.fillStyle = fgColor || '#00891D';
-            ctx.font = `800 ${Math.max(Math.round(circleRadius * 1.25), 11)}px "Segoe UI", -apple-system, sans-serif`;
+            ctx.font = `800 ${Math.max(Math.round(squareSize * 0.52), 11)}px "Segoe UI", -apple-system, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('VK', centerX, centerY);

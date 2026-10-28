@@ -3,18 +3,7 @@ import { useQR } from '../context/QRContext';
 import {
   LayoutDashboard,
   QrCode,
-  PlusCircle,
   History,
-  BarChart3,
-  Megaphone,
-  Layers,
-  Users,
-  ShieldCheck,
-  Settings,
-  ChevronRight,
-  Sparkles,
-  Palette,
-  FileText,
 } from 'lucide-react';
 
 export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
@@ -25,7 +14,6 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     approvals,
     qrCodes,
     currentRole,
-    startNewQRCode,
   } = useQR();
 
   const pendingApprovalsCount = approvals.filter((a) => {
@@ -37,40 +25,18 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
   const navSections = [
     {
-      group: 'QR Studio Core',
+      group: 'QR STUDIO',
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'listing', label: 'QR Management', icon: QrCode },
-        { id: 'design-studio', label: 'Design Studio', icon: Palette },
-        { id: 'details', label: 'QR Code Details', icon: FileText },
-      ],
-    },
-    {
-      group: 'Analytics & Tracking',
-      items: [
-        { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
-        { id: 'scan-history', label: 'Scan History Log', icon: History },
-        { id: 'campaigns', label: 'Campaign Management', icon: Megaphone },
-      ],
-    },
-    {
-      group: 'Distribution & Assets',
-      items: [
-        { id: 'templates', label: 'Templates Library', icon: Layers },
-        { id: 'referrals', label: 'Referral QR (VGE)', icon: Users },
-      ],
-    },
-    {
-      group: 'Governance & Rules',
-      items: [
+        { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         {
-          id: 'permissions',
-          label: 'Permissions & Approvals',
-          icon: ShieldCheck,
+          id: 'listing',
+          path: '/qr-management',
+          label: 'QR Management',
+          icon: QrCode,
           badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null,
           badgeAlert: true,
         },
-        { id: 'settings', label: 'Settings & Audit Logs', icon: Settings },
+        { id: 'scan-history', path: '/scan-history', label: 'Scan History Log', icon: History },
       ],
     },
   ];
@@ -79,21 +45,15 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header with Official VillagKart Logo */}
       <div className="sidebar-header">
-        <div
+        <a
+          href="/dashboard"
           className="sidebar-logo-container"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             setActiveScreen('dashboard');
             if (setMobileOpen) setMobileOpen(false);
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setActiveScreen('dashboard');
-              if (setMobileOpen) setMobileOpen(false);
-            }
-          }}
           title="VillagKart — Dashboard"
-          role="button"
-          tabIndex={0}
         >
           <img
             src="/villagekart_logo.svg"
@@ -104,7 +64,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
               e.currentTarget.style.display = 'none';
             }}
           />
-        </div>
+        </a>
       </div>
 
       {/* Navigation Scroll */}
@@ -116,16 +76,20 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
               const Icon = item.icon;
               const isActive = activeScreen === item.id;
               return (
-                <button
+                <a
                   key={item.id}
-                  onClick={() => {
+                  id={`sidebar-nav-${item.id}`}
+                  href={item.path}
+                  onClick={(e) => {
+                    e.preventDefault();
                     if (item.id === 'details') {
-                      setDetailsViewMode('grid');
+                      setDetailsViewMode('detail');
                     }
                     setActiveScreen(item.id);
                     if (setMobileOpen) setMobileOpen(false);
                   }}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  style={{ textDecoration: 'none' }}
                 >
                   <div className="nav-item-content">
                     <Icon size={16} color={isActive ? '#00891D' : '#6B7280'} />
@@ -137,7 +101,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                       {item.badge}
                     </span>
                   )}
-                </button>
+                </a>
               );
             })}
           </div>

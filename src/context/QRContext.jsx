@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
+  ROUTES,
+  getRouteForScreen,
+  parsePathname,
+  getPageTitle,
+} from '../utils/routes';
+import {
   INITIAL_QR_CODES,
   INITIAL_CAMPAIGNS,
   INITIAL_TEMPLATES,
@@ -9,13 +15,57 @@ import {
   INITIAL_SETTINGS,
   INITIAL_AUDIT_LOGS,
   INITIAL_HUBS,
-  INITIAL_VILLAGES,
 } from '../data/mockData';
 
 const QRContext = createContext(null);
 
+// Factory for extracting wizard data from an existing QR code
+const getWizardDataFromQR = (qr) => ({
+  id: qr.id,
+  name: qr.name || '',
+  purpose: qr.purpose || '',
+  type: qr.type || 'Campaign',
+  owner: qr.owner || 'Anita Rao',
+  department: qr.department || 'Marketing',
+  campaign: qr.campaign || '',
+  campaignId: qr.campaignId || 'CMP-001',
+  hubId: qr.hubId || 'HUB-01',
+  village: qr.village || '',
+  trackingEnabled: qr.trackingEnabled ?? true,
+  approvalRequired: qr.approvalRequired ?? false,
+  vehicleId: qr.vehicleId || '',
+  productId: qr.productId || '',
+  referralCode: qr.referralCode || '',
+  // Destination
+  redirectCode: qr.destination?.redirectCode || '',
+  androidUrl: qr.destination?.androidUrl || '',
+  androidDeepLink: qr.destination?.androidDeepLink || '',
+  iosUrl: qr.destination?.iosUrl || '',
+  iosUniversalLink: qr.destination?.iosUniversalLink || '',
+  fallbackUrl: qr.destination?.fallbackUrl || qr.destination?.androidUrl || '',
+  routingBehavior: qr.destination?.routingBehavior || 'fallback_only',
+  // Design
+  template: qr.design?.template || 'VillagKart Branded',
+  fgColor: qr.design?.fgColor || '#00891D',
+  bgColor: qr.design?.bgColor || '#FFFFFF',
+  showLogo: qr.design?.showLogo !== false,
+  logoSrc: qr.design?.logoSrc || qr.design?.logoUrl || '',
+  hasCtaFrame: qr.design?.hasCtaFrame !== false,
+  ctaText: qr.design?.ctaText || 'SCAN FOR FRESH SAVINGS',
+  campaignTitle: qr.design?.campaignTitle || '',
+  supportingText: qr.design?.supportingText || '',
+  quietZone: qr.design?.quietZone || 4,
+  errorCorrection: qr.design?.errorCorrection || 'Q',
+  // Export
+  exportUnit: qr.exportUnit || 'cm',
+  exportWidth: qr.exportWidth || 4,
+  exportHeight: qr.exportHeight || 4,
+  exportDpi: qr.exportDpi || 300,
+  exportFormat: qr.exportFormat || 'SVG',
+});
+
 // Factory for fresh wizard starting state
-export const getInitialWizardData = () => ({
+const getInitialWizardData = () => ({
   name: 'New Phirangipuram Promo QR',
   type: 'Campaign',
   purpose: 'Promote seasonal fresh arrivals at village mandal collection hub',
@@ -60,35 +110,62 @@ export const getInitialWizardData = () => ({
   exportFormat: 'SVG',
 });
 
+const normalizeLifecycleStatus = (rawStatus) => {
+  if (!rawStatus) return 'Active';
+  const s = String(rawStatus).trim();
+  if (s === 'Draft') return 'Draft';
+  if (s === 'Pending Approval' || s === 'Pending for Approval' || s === 'Pending' || s === 'Under Review') {
+    return 'Pending Approval';
+  }
+  if (s === 'Paused' || s === 'Pause' || s === 'Archived' || s === 'Changes Requested') {
+    return 'Paused';
+  }
+  if (s === 'Expired') {
+    return 'Expired';
+  }
+  return 'Active';
+};
+
 export const QRProvider = ({ children }) => {
-  // Navigation & View Mode
-  const [activeScreen, setActiveScreen] = useState('dashboard'); // 'dashboard', 'listing', 'wizard', 'details', 'scan-history', 'analytics', 'campaigns', 'campaign-detail', 'templates', 'referrals', 'permissions', 'settings'
+  // Navigation & View Mode derived from browser URL
+  const initialRoute = parsePathname(typeof window !== 'undefined' ? window.location.pathname : '/dashboard');
+  const [activeScreen, setActiveScreen] = useState(initialRoute.screen || 'dashboard');
   const [viewMode, setViewMode] = useState('desktop'); // 'desktop' | 'mobile'
   const [currentRole, setCurrentRole] = useState('Admin'); // 'Admin' | 'Marketing' | 'Hub Manager' | 'VGE'
-  const [selectedQrId, setSelectedQrId] = useState('QR-00001');
+  const [selectedQrId, setSelectedQrId] = useState(initialRoute.qrId || 'QR-00001');
   const [selectedCampaignId, setSelectedCampaignId] = useState('CMP-001');
-  const [detailsViewMode, setDetailsViewMode] = useState('grid'); // 'grid' | 'detail'
+  const [detailsViewMode, setDetailsViewMode] = useState('detail'); // Default to full detail view
+  const [listingStatusFilter, setListingStatusFilter] = useState('all');
+  const [wizardMode, setWizardMode] = useState(initialRoute.wizardMode || 'create'); // 'create' | 'edit'
+  const [editingQrId, setEditingQrId] = useState(initialRoute.editingQrId || null);
 
-  // Master Data
+  const goToListingWithStatus = (status = 'all') => {
+    setListingStatusFilter(status);
+    setActiveScreen('listing');
+  };
+
+  // Master Data: 5 valid lifecycle statuses: 'Active', 'Draft', 'Pending Approval', 'Paused', 'Expired'
   const [qrCodes, setQrCodes] = useState(() => {
     const saved = localStorage.getItem('vk_qr_codes');
-    if (!saved) return INITIAL_QR_CODES;
-    try {
-      const parsed = JSON.parse(saved);
-      const existingIds = new Set(parsed.map((q) => q.id));
-      const initialMap = new Map(INITIAL_QR_CODES.map((q) => [q.id, q]));
-      const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
-      const updated = parsed.map((item) => {
-        const initial = initialMap.get(item.id);
-        if (initial && (initial.status === 'Changes Requested' || initial.status === 'Rejected')) {
-          return { ...item, status: initial.status, reviewerComments: initial.reviewerComments || item.reviewerComments };
-        }
-        return item;
-      });
-      return [...updated, ...missing];
-    } catch {
-      return INITIAL_QR_CODES;
+    let baseList = INITIAL_QR_CODES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const existingIds = new Set(parsed.map((q) => q.id));
+        const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
+        baseList = [...parsed, ...missing];
+      } catch {
+        baseList = INITIAL_QR_CODES;
+      }
     }
+    return baseList.map((item) => {
+      const match = INITIAL_QR_CODES.find((m) => m.id === item.id);
+      const rawStatus = match ? match.status : item.status;
+      return {
+        ...item,
+        status: normalizeLifecycleStatus(rawStatus),
+      };
+    });
   });
 
   const [campaigns, setCampaigns] = useState(() => {
@@ -111,8 +188,11 @@ export const QRProvider = ({ children }) => {
       const missing = INITIAL_APPROVALS.filter((a) => !existingIds.has(a.id));
       const updated = parsed.map((a) => {
         const initial = initialMap.get(a.id);
-        if (initial && (initial.status === 'Changes Requested' || initial.status === 'Rejected')) {
-          return { ...a, status: initial.status, reviewerComments: initial.reviewerComments || a.reviewerComments };
+        if (initial && initial.status === 'Rejected') {
+          return { ...a, status: 'Rejected', reviewerComments: initial.reviewerComments || a.reviewerComments };
+        }
+        if (a.status === 'Changes Requested') {
+          return { ...a, status: 'Rejected', reviewerComments: a.reviewerComments || 'Rejected by governance reviewer.' };
         }
         return a;
       });
@@ -130,11 +210,19 @@ export const QRProvider = ({ children }) => {
 
   // Create/Edit Wizard State (Screens 03, 04, 05, 06, 07)
   const [wizardStep, setWizardStep] = useState(1); // 1: Basic Details, 2: Destination, 3: Design Studio, 4: Export, 5: Review & Publish
-  const [wizardData, setWizardData] = useState(getInitialWizardData);
+  const [wizardData, setWizardData] = useState(() => {
+    if (initialRoute.wizardMode === 'edit' && initialRoute.editingQrId) {
+      const match = INITIAL_QR_CODES.find((q) => q.id === initialRoute.editingQrId);
+      if (match) return getWizardDataFromQR(match);
+    }
+    return getInitialWizardData();
+  });
   const [wizardNotification, setWizardNotification] = useState(null);
 
   // Reset wizard back to starting point (Step 1 with clean initial defaults)
   const resetWizard = (clearNotification = false) => {
+    setWizardMode('create');
+    setEditingQrId(null);
     setWizardStep(1);
     setWizardData(getInitialWizardData());
     if (clearNotification) setWizardNotification(null);
@@ -157,6 +245,8 @@ export const QRProvider = ({ children }) => {
 
   // Start new QR code creation flow from anywhere
   const startNewQRCode = (initialData = null) => {
+    setWizardMode('create');
+    setEditingQrId(null);
     resetWizard(true);
     if (initialData) {
       setWizardData((prev) => ({ ...prev, ...initialData }));
@@ -165,11 +255,175 @@ export const QRProvider = ({ children }) => {
     setActiveScreen('wizard');
   };
 
+  // Start edit flow for an existing QR code with all its details pre-populated
+  const startEditQRCode = (qr) => {
+    if (!qr) return;
+    setWizardMode('edit');
+    setEditingQrId(qr.id);
+    setSelectedQrId(qr.id);
+    setWizardStep(1);
+    setWizardNotification(null);
+    setWizardData(getWizardDataFromQR(qr));
+    setActiveScreen('wizard');
+  };
+
+  // Synchronize browser URL and document title
+  useEffect(() => {
+    const targetUrl = getRouteForScreen(activeScreen, {
+      qrId: selectedQrId,
+      wizardMode,
+      editingQrId,
+    });
+
+    const currentUrl = window.location.pathname;
+    if (currentUrl !== targetUrl) {
+      if (currentUrl === '/' || currentUrl === '') {
+        window.history.replaceState({ activeScreen, selectedQrId, wizardMode, editingQrId }, '', targetUrl);
+      } else {
+        window.history.pushState({ activeScreen, selectedQrId, wizardMode, editingQrId }, '', targetUrl);
+      }
+    }
+
+    const currentQr = qrCodes?.find((q) => q.id === (editingQrId || selectedQrId));
+    document.title = getPageTitle(activeScreen, {
+      qr: currentQr,
+      qrId: editingQrId || selectedQrId,
+      wizardMode,
+    });
+  }, [activeScreen, selectedQrId, wizardMode, editingQrId, qrCodes]);
+
+  // Handle browser back and forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const parsed = parsePathname(window.location.pathname);
+      setActiveScreen(parsed.screen);
+      if (parsed.qrId) setSelectedQrId(parsed.qrId);
+      if (parsed.wizardMode) setWizardMode(parsed.wizardMode);
+      if (parsed.editingQrId) {
+        setEditingQrId(parsed.editingQrId);
+        const match = qrCodes.find((q) => q.id === parsed.editingQrId);
+        if (match) setWizardData(getWizardDataFromQR(match));
+      }
+      if (parsed.screen === 'details') setDetailsViewMode('detail');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [qrCodes]);
+
+  const navigateTo = (screen, options = {}) => {
+    if (options.qrId) setSelectedQrId(options.qrId);
+    if (options.wizardMode) setWizardMode(options.wizardMode);
+    if (options.editingQrId) setEditingQrId(options.editingQrId);
+    if (screen === 'details') setDetailsViewMode('detail');
+    setActiveScreen(screen);
+  };
+
+  // Update existing QR code in place (preserving ID and scan metrics)
+  const updateWizardQR = () => {
+    if (!editingQrId) return;
+
+    setQrCodes((prev) =>
+      prev.map((item) => {
+        if (item.id === editingQrId) {
+          const currentVer = parseFloat((item.version || 'v1.0').replace('v', '')) || 1.0;
+          const nextVersion = `v${(currentVer + 0.1).toFixed(1)}`;
+
+          return {
+            ...item,
+            name: wizardData.name || item.name,
+            purpose: wizardData.purpose !== undefined ? wizardData.purpose : item.purpose,
+            type: wizardData.type || item.type,
+            owner: wizardData.owner || item.owner,
+            department: wizardData.department || item.department,
+            campaign: wizardData.campaign || item.campaign,
+            campaignId: wizardData.campaignId || item.campaignId,
+            hubId: wizardData.hubId || item.hubId,
+            village: wizardData.village || item.village,
+            trackingEnabled: wizardData.trackingEnabled !== false,
+            version: nextVersion,
+            lastModified: new Date().toISOString().split('T')[0],
+            destination: {
+              ...item.destination,
+              redirectCode: wizardData.redirectCode || item.destination?.redirectCode,
+              androidUrl: wizardData.androidUrl || item.destination?.androidUrl,
+              androidDeepLink: wizardData.androidDeepLink || item.destination?.androidDeepLink,
+              iosUrl: wizardData.iosUrl || item.destination?.iosUrl,
+              iosUniversalLink: wizardData.iosUniversalLink || item.destination?.iosUniversalLink,
+              fallbackUrl: wizardData.fallbackUrl || item.destination?.fallbackUrl,
+              routingBehavior: wizardData.routingBehavior || item.destination?.routingBehavior || 'fallback_only',
+            },
+            design: {
+              ...item.design,
+              fgColor: wizardData.fgColor || item.design?.fgColor,
+              bgColor: wizardData.bgColor || item.design?.bgColor,
+              showLogo: wizardData.showLogo !== false,
+              logoSrc: wizardData.logoSrc || item.design?.logoSrc,
+              hasCtaFrame: wizardData.hasCtaFrame !== false,
+              ctaText: wizardData.ctaText || item.design?.ctaText,
+              campaignTitle: wizardData.campaignTitle || item.design?.campaignTitle,
+              supportingText: wizardData.supportingText || item.design?.supportingText,
+              quietZone: wizardData.quietZone || item.design?.quietZone || 4,
+              errorCorrection: wizardData.errorCorrection || item.design?.errorCorrection || 'Q',
+            },
+          };
+        }
+        return item;
+      })
+    );
+
+    addAuditLog(
+      'Updated QR Code',
+      `${editingQrId} (${wizardData.name})`,
+      'Configuration updated via Wizard'
+    );
+
+    showToast(`QR Code ${editingQrId} updated successfully!`, 'success');
+    setSelectedQrId(editingQrId);
+    setWizardMode('create');
+    setEditingQrId(null);
+    resetWizard();
+    setActiveScreen('listing');
+  };
+
   // Test Scan Modal Simulator
   const [testScanModal, setTestScanModal] = useState({
     isOpen: false,
     qrCode: null,
   });
+
+  // Neat Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    qr: null,
+    onSuccess: null,
+  });
+
+  const requestDeleteQR = (qr, onSuccess = null) => {
+    if (!qr) return;
+    setDeleteModal({
+      isOpen: true,
+      qr,
+      onSuccess,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      qr: null,
+      onSuccess: null,
+    });
+  };
+
+  const confirmDeleteQR = () => {
+    if (!deleteModal.qr) return;
+    const targetId = deleteModal.qr.id;
+    const callback = deleteModal.onSuccess;
+    deleteQR(targetId);
+    closeDeleteModal();
+    if (callback) callback();
+  };
 
   // Sync with localStorage
   useEffect(() => {
@@ -331,7 +585,7 @@ export const QRProvider = ({ children }) => {
       requestingUser: `${newQR.owner} (${newQR.department})`,
       submittedDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
       configVersion: 'v1.0',
-      riskClassification: newQR.type === 'Payment' ? 'High (Payment Flow)' : 'Medium (Marketing Campaign)',
+      riskClassification: newQR.type === 'Campaign' ? 'Medium (Marketing Campaign)' : 'Standard (Operational Dynamic QR)',
       validationResults: {
         qrDecodes: true,
         destinationsActive: true,
@@ -494,32 +748,42 @@ export const QRProvider = ({ children }) => {
     showToast(`Simulated Scan processed for ${qr.id} (${simulatedDevice})`);
   };
 
-  // Approve / Reject in queue
-  const handleApprovalAction = (approvalId, action, comments = '') => {
-    let targetQrId = null;
+  // Approve / Reject in queue (Strictly Active or Paused)
+  const handleApprovalAction = (approvalOrQrId, action, comments = '') => {
+    let targetQrId = approvalOrQrId;
     let targetQrName = '';
-    const newStatus = action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Changes Requested';
+    const newStatus = action === 'approve' ? 'Approved' : 'Rejected';
+
+    const matchingApp = approvals.find((a) => a.id === approvalOrQrId || a.qrId === approvalOrQrId);
+    if (matchingApp) {
+      targetQrId = matchingApp.qrId;
+      targetQrName = matchingApp.qrName;
+    } else {
+      const matchingQr = qrCodes.find((q) => q.id === approvalOrQrId);
+      if (matchingQr) {
+        targetQrName = matchingQr.name;
+      }
+    }
 
     setApprovals((prev) =>
       prev.map((app) => {
-        if (app.id === approvalId) {
-          targetQrId = app.qrId;
-          targetQrName = app.qrName;
+        if (app.id === approvalOrQrId || app.qrId === approvalOrQrId) {
           return { ...app, status: newStatus, reviewerComments: comments };
         }
         return app;
       })
     );
 
-    // Update QR code status
+    // Update QR code status: strictly Active or Paused
+    const nextQrStatus = action === 'approve' ? 'Active' : 'Paused';
+
     setQrCodes((qrs) =>
       qrs.map((q) => {
-        if (q.id === targetQrId || (targetQrId === null && q.id === selectedQrId)) {
-          const qrStatus = action === 'approve' ? 'Active' : action === 'reject' ? 'Rejected' : 'Changes Requested';
+        if (q.id === targetQrId || q.id === approvalOrQrId || (targetQrId === null && q.id === selectedQrId)) {
           return {
             ...q,
-            status: qrStatus,
-            reviewerComments: comments || (action === 'request_changes' ? 'Reviewer requested configuration or artwork changes.' : action === 'reject' ? 'Rejected by governance reviewer.' : ''),
+            status: nextQrStatus,
+            reviewerComments: comments || (action === 'reject' ? 'Reviewer paused pending QR.' : 'Accepted and activated.'),
             lastModified: new Date().toISOString().split('T')[0],
           };
         }
@@ -528,20 +792,17 @@ export const QRProvider = ({ children }) => {
     );
 
     addAuditLog(
-      `Approval Action: ${newStatus}`,
-      `${targetQrId || approvalId} (${targetQrName || 'QR Code'})`,
-      comments || `Reviewer action: ${newStatus}`,
-      newStatus
+      `Approval Action: ${action === 'approve' ? 'Accepted & Activated' : 'Rejected to Paused'}`,
+      `${targetQrId || approvalOrQrId} (${targetQrName || 'QR Code'})`,
+      comments || `Status -> ${nextQrStatus}`,
+      action === 'approve' ? 'Approved' : 'Paused'
     );
 
     if (action === 'approve') {
-      showToast(`QR Code ${targetQrId || approvalId} approved! Now live in QR Management.`, 'success');
+      showToast(`QR Code ${targetQrName ? `"${targetQrName}"` : targetQrId || approvalOrQrId} accepted & activated!`, 'success');
       if (targetQrId) setSelectedQrId(targetQrId);
-    } else if (action === 'request_changes') {
-      showToast(`Changes requested for ${targetQrId || approvalId}. Updated status in Details.`, 'warning');
-      if (targetQrId) setSelectedQrId(targetQrId);
-    } else if (action === 'reject') {
-      showToast(`QR Code ${targetQrId || approvalId} rejected. Updated status in Details.`, 'error');
+    } else {
+      showToast(`QR Code ${targetQrName ? `"${targetQrName}"` : targetQrId || approvalOrQrId} set to Paused.`, 'info');
       if (targetQrId) setSelectedQrId(targetQrId);
     }
   };
@@ -584,6 +845,10 @@ export const QRProvider = ({ children }) => {
         deleteQR,
         wizardStep,
         setWizardStep,
+        wizardMode,
+        setWizardMode,
+        editingQrId,
+        setEditingQrId,
         wizardData,
         setWizardData,
         wizardNotification,
@@ -592,6 +857,8 @@ export const QRProvider = ({ children }) => {
         saveWizardDraft,
         resetWizard,
         startNewQRCode,
+        startEditQRCode,
+        updateWizardQR,
         isCreateModalOpen,
         setIsCreateModalOpen,
         openCreateQRModal,
@@ -601,6 +868,16 @@ export const QRProvider = ({ children }) => {
         setTestScanModal,
         simulateScan,
         handleApprovalAction,
+        listingStatusFilter,
+        setListingStatusFilter,
+        goToListingWithStatus,
+        deleteModal,
+        setDeleteModal,
+        requestDeleteQR,
+        closeDeleteModal,
+        confirmDeleteQR,
+        ROUTES,
+        navigateTo,
       }}
     >
       {children}

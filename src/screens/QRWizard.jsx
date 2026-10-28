@@ -1,47 +1,40 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
-import { INITIAL_HUBS, INITIAL_VILLAGES, INITIAL_CAMPAIGNS, INITIAL_USERS } from '../data/mockData';
 import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Smartphone,
   Download,
-  ShieldCheck,
   Sparkles,
-  Layers,
   Copy,
   ExternalLink,
-  AlertCircle,
   FileText,
   Printer,
   Share2,
   Check,
   Send,
   Eye,
-  Sliders,
-  CheckSquare,
-  Square,
   RefreshCw,
   Globe,
-  Laptop,
-  Radio,
 } from 'lucide-react';
 
 export const QRWizard = () => {
   const {
     wizardStep,
     setWizardStep,
+    wizardMode,
+    editingQrId,
     wizardData,
     setWizardData,
     wizardNotification,
     setWizardNotification,
     publishWizardQR,
+    updateWizardQR,
     saveWizardDraft,
     resetWizard,
     setActiveScreen,
-    setSelectedQrId,
     currentRole,
     setTestScanModal,
     showToast,
@@ -51,24 +44,12 @@ export const QRWizard = () => {
   const [exportTab, setExportTab] = useState('print'); // 'print' | 'digital'
   const [digitalFormat, setDigitalFormat] = useState('PNG'); // 'PNG' | 'JPEG'
   const [printLayout, setPrintLayout] = useState('poster'); // 'poster', 'flyer', 'sticker', 'label', 'banner'
-  const [digitalLayout, setDigitalLayout] = useState('whatsapp'); // 'whatsapp', 'social_square', 'story', 'embed'
-
-  // Destination Validation State
-  const [destValidation, setDestValidation] = useState({
-    tested: false,
-    isValid: true,
-    error: '',
-    testedAt: null,
-  });
-
-  // Interactive Live Forwarding Preview Device
-  const [previewDevice, setPreviewDevice] = useState('android'); // 'android' | 'ios' | 'desktop' | 'bot'
 
   // Update wizard helper with smart dynamic slug derivation
   const updateData = (field, value) => {
     setWizardData((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === 'name') {
+      if (field === 'name' && wizardMode !== 'edit') {
         const isDefaultOrAuto =
           !prev.redirectCode ||
           prev.redirectCode === 'vk-phr-promo' ||
@@ -88,43 +69,8 @@ export const QRWizard = () => {
   // Determine if approval is needed based on role & QR type
   const isApprovalRequired =
     currentRole !== 'Admin' &&
-    (wizardData.type === 'Payment' ||
-      wizardData.type === 'Campaign' ||
+    (wizardData.type === 'Campaign' ||
       currentRole === 'VGE');
-
-  // Validate Destination Function
-  const handleValidateDestinations = () => {
-    const fallback = wizardData.fallbackUrl?.trim() || '';
-    if (!fallback) {
-      setDestValidation({
-        tested: true,
-        isValid: false,
-        error: 'Fallback destination URL is required.',
-        testedAt: new Date().toLocaleTimeString(),
-      });
-      showToast('Validation failed: Missing fallback URL', 'error');
-      return;
-    }
-
-    if (!fallback.startsWith('https://')) {
-      setDestValidation({
-        tested: true,
-        isValid: false,
-        error: 'HTTPS is required on all destination URLs for secure mobile routing.',
-        testedAt: new Date().toLocaleTimeString(),
-      });
-      showToast('Validation failed: HTTPS required', 'error');
-      return;
-    }
-
-    setDestValidation({
-      tested: true,
-      isValid: true,
-      error: '',
-      testedAt: new Date().toLocaleTimeString(),
-    });
-    showToast('All destinations verified! SSL active and endpoint reachable.');
-  };
 
   // Download QR Canvas Helper
   const handleDownload = (format = 'PNG') => {
@@ -176,28 +122,82 @@ export const QRWizard = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 5-Step Stepper Header */}
-      <div className="wizard-stepper">
-        {[
-          { step: 1, label: 'Basic Details' },
-          { step: 2, label: 'Destinations' },
-          { step: 3, label: 'Design Studio' },
-          { step: 4, label: 'Print & Digital Export' },
-          { step: 5, label: 'Review & Publish' },
-        ].map((s, idx, arr) => (
-          <React.Fragment key={s.step}>
-            <div
-              className={`step-item ${wizardStep === s.step ? 'active' : ''} ${wizardStep > s.step ? 'completed' : ''}`}
-              onClick={() => setWizardStep(s.step)}
+      {/* 5-Step Stepper Header Card */}
+      <div className="vk-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setActiveScreen('listing')}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              title="Return to QR Management"
             >
-              <div className="step-bubble">
-                {wizardStep > s.step ? '✓' : s.step}
-              </div>
-              <span className="step-title">{s.label}</span>
-            </div>
-            {idx < arr.length - 1 && <div className="step-divider" />}
-          </React.Fragment>
-        ))}
+              <ArrowLeft size={14} />
+              <span>Exit to QR Management</span>
+            </button>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>
+              {wizardMode === 'edit' ? `Edit QR Code: ${wizardData.name || editingQrId}` : 'Create New QR Code'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              borderRadius: '20px',
+              background: '#F0FDF4',
+              border: '1px solid #BBF7D0',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#15803D',
+            }}>
+              Step {wizardStep} of 5 · {[
+                'Basic Details',
+                'Destinations',
+                'Design Studio',
+                'Print & Digital Export',
+                wizardMode === 'edit' ? 'Review & Update' : 'Review & Publish',
+              ][wizardStep - 1]}
+            </span>
+          </div>
+        </div>
+
+        {/* Stepper Navigation Progress Bar */}
+        <div className="wizard-stepper" style={{ margin: 0, padding: '10px 14px' }}>
+          {[
+            { step: 1, label: 'Basic Details' },
+            { step: 2, label: 'Destinations' },
+            { step: 3, label: 'Design Studio' },
+            { step: 4, label: 'Print & Digital Export' },
+            { step: 5, label: wizardMode === 'edit' ? 'Review & Update' : 'Review & Publish' },
+          ].map((s, idx, arr) => {
+            const isCompleted = wizardStep > s.step;
+            const isActive = wizardStep === s.step;
+            return (
+              <React.Fragment key={s.step}>
+                <div
+                  id={`wizard-step-${s.step}`}
+                  className={`step-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+                  onClick={() => setWizardStep(s.step)}
+                  title={`Go to Step ${s.step}: ${s.label}`}
+                >
+                  <div className="step-bubble">
+                    {isCompleted ? <Check size={14} strokeWidth={3} /> : s.step}
+                  </div>
+                  <div className="step-title-wrap">
+                    <span className="step-subtext">Step 0{s.step}</span>
+                    <span className="step-title">{s.label}</span>
+                  </div>
+                </div>
+                {idx < arr.length - 1 && (
+                  <div className={`step-divider ${isCompleted ? 'completed' : ''}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
       {/* Wizard Reset / Submission Notice Banner */}
@@ -271,22 +271,26 @@ export const QRWizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Create QR: Basic Details</h2>
+              <h2 className="vk-card-title">
+                {wizardMode === 'edit' ? `Edit QR: Basic Details (${wizardData.id || editingQrId})` : 'Create QR: Basic Details'}
+              </h2>
               <p className="vk-card-subtitle">
                 Collect core governance, channel attribution and operational scope before artwork generation
               </p>
             </div>
             {/* System Rule Approval Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className={`badge ${isApprovalRequired ? 'badge-pending' : 'badge-active'}`}>
-                {isApprovalRequired ? 'Approval Required by System Rules' : 'Pre-Approved for Immediate Publish'}
+              <span className={`badge ${wizardMode === 'edit' ? 'badge-active' : (isApprovalRequired ? 'badge-pending' : 'badge-active')}`}>
+                {wizardMode === 'edit'
+                  ? 'Editing Existing QR Code'
+                  : (isApprovalRequired ? 'Approval Required by System Rules' : 'Pre-Approved for Immediate Publish')}
               </span>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '18px' }}>
             {/* QR Name */}
-            <div className="form-group">
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">
                 QR Name <span className="required-dot">*</span>
               </label>
@@ -298,40 +302,6 @@ export const QRWizard = () => {
                 placeholder="e.g. Phirangipuram Village Launch Poster"
               />
               <p className="form-helper">Required; unique descriptive name for marketing and audit trail</p>
-            </div>
-
-            {/* QR Type */}
-            <div className="form-group">
-              <label className="form-label">
-                QR Type <span className="required-dot">*</span>
-              </label>
-              <select
-                className="form-control"
-                value={wizardData.type}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  updateData('type', val);
-                  if (val === 'Vehicle') {
-                    updateData('ctaText', "TRACK TODAY'S VAN ROUTE");
-                    updateData('template', 'Shop-on-Wheels vehicle sticker');
-                  } else if (val === 'App Download') {
-                    updateData('ctaText', 'SCAN TO DOWNLOAD');
-                    updateData('template', 'App download poster');
-                  } else if (val === 'Referral') {
-                    updateData('ctaText', 'SCAN TO JOIN VILLAGKART');
-                    updateData('template', 'VGE referral card');
-                  }
-                }}
-              >
-                <option value="App Download">App Download</option>
-                <option value="Campaign">Campaign</option>
-                <option value="Vehicle">Vehicle (Shop-on-Wheels)</option>
-                <option value="Referral">Referral</option>
-                <option value="Product">Product Catalogue</option>
-                <option value="Feedback">Feedback</option>
-                <option value="Payment">Payment</option>
-              </select>
-              <p className="form-helper">Dynamic fields update according to the selected type</p>
             </div>
 
             {/* QR Purpose */}
@@ -348,215 +318,6 @@ export const QRWizard = () => {
               />
             </div>
 
-            {/* Owner */}
-            <div className="form-group">
-              <label className="form-label">
-                Owner <span className="required-dot">*</span>
-              </label>
-              <select
-                className="form-control"
-                value={wizardData.owner}
-                onChange={(e) => {
-                  const selectedUser = INITIAL_USERS.find((u) => u.name === e.target.value);
-                  updateData('owner', e.target.value);
-                  if (selectedUser) {
-                    updateData('department', selectedUser.department);
-                  }
-                }}
-              >
-                {INITIAL_USERS.map((u) => (
-                  <option key={u.id} value={u.name}>
-                    {u.name} ({u.role})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Department */}
-            <div className="form-group">
-              <label className="form-label">Department</label>
-              <input
-                type="text"
-                className="form-control"
-                value={wizardData.department}
-                onChange={(e) => updateData('department', e.target.value)}
-                placeholder="e.g. Marketing / Hub Operations"
-              />
-            </div>
-
-            {/* DYNAMIC FIELDS: Vehicle QR requires vehicle ID and hub */}
-            {wizardData.type === 'Vehicle' && (
-              <div className="form-group" style={{ gridColumn: 'span 2', background: '#FEF3C7', padding: '16px', borderRadius: '10px', border: '1px solid #FDE68A' }}>
-                <div style={{ fontWeight: 700, color: '#92400E', marginBottom: '8px' }}>
-                  🚐 Vehicle QR Requirements (Vehicle ID & Hub)
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-                  <div>
-                    <label className="form-label">Vehicle ID <span className="required-dot">*</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. AP-07-TA-4491"
-                      value={wizardData.vehicleId || ''}
-                      onChange={(e) => updateData('vehicleId', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Operating Route / Shift</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. Route 4: Phirangipuram - Prattipadu Morning"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* DYNAMIC FIELDS: Referral QR requires referral identifier and eligible owner */}
-            {wizardData.type === 'Referral' && (
-              <div className="form-group" style={{ gridColumn: 'span 2', background: '#F3E8FF', padding: '16px', borderRadius: '10px', border: '1px solid #E9D5FF' }}>
-                <div style={{ fontWeight: 700, color: '#6B21A8', marginBottom: '8px' }}>
-                  🤝 Referral QR Requirements (Referral Identifier & Eligible Owner)
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-                  <div>
-                    <label className="form-label">Referral Identifier <span className="required-dot">*</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. VGE-RAM-901"
-                      value={wizardData.referralCode || 'VGE-AGT-774'}
-                      onChange={(e) => updateData('referralCode', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Eligible Partner Role</label>
-                    <select className="form-control">
-                      <option>Village Gramin Executive (VGE)</option>
-                      <option>Student Ambassador</option>
-                      <option>Customer Referral Champion</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Campaign */}
-            <div className="form-group">
-              <label className="form-label">Campaign</label>
-              <select
-                className="form-control"
-                value={wizardData.campaignId}
-                onChange={(e) => {
-                  const sel = INITIAL_CAMPAIGNS.find((c) => c.id === e.target.value);
-                  updateData('campaignId', e.target.value);
-                  updateData('campaign', sel ? sel.name : 'All Campaigns');
-                }}
-              >
-                <option value="all">Select All</option>
-                {INITIAL_CAMPAIGNS.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.id})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Hub / Territory */}
-            <div className="form-group">
-              <label className="form-label">Hub / Territory</label>
-              <select
-                className="form-control"
-                value={wizardData.hubId}
-                onChange={(e) => updateData('hubId', e.target.value)}
-              >
-                <option value="all">Select All</option>
-                {INITIAL_HUBS.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name} ({h.district})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Village */}
-            <div className="form-group">
-              <label className="form-label">Village</label>
-              <select
-                className="form-control"
-                value={wizardData.village}
-                onChange={(e) => updateData('village', e.target.value)}
-              >
-                <option value="all">Select All</option>
-                {INITIAL_VILLAGES.map((v) => (
-                  <option key={v.id} value={v.name}>
-                    {v.name} (Pop: {v.population})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Start Date and Expiry Date */}
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label className="form-label" style={{ margin: 0 }}>Start Date & Expiry Date</label>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#00891D' }}>
-                  <input
-                    type="checkbox"
-                    checked={wizardData.neverEnding || wizardData.expiryDate === 'Never Ending'}
-                    onChange={(e) => {
-                      const isNever = e.target.checked;
-                      updateData('neverEnding', isNever);
-                      updateData('expiryDate', isNever ? 'Never Ending' : '2026-12-31');
-                    }}
-                    style={{ width: '15px', height: '15px', accentColor: '#00891D', cursor: 'pointer' }}
-                  />
-                  <span>Never Ending (No Expiry)</span>
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={wizardData.startDate || new Date().toISOString().split('T')[0]}
-                  onChange={(e) => updateData('startDate', e.target.value)}
-                  title="Start Date"
-                  style={{ flex: 1 }}
-                />
-                <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280', fontSize: '13px', fontWeight: 500 }}>to</span>
-                {(wizardData.neverEnding || wizardData.expiryDate === 'Never Ending') ? (
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      background: '#F0FDF4',
-                      border: '1px solid #86EFAC',
-                      borderRadius: '6px',
-                      height: '38px',
-                      color: '#15803D',
-                      fontWeight: 600,
-                      fontSize: '13px',
-                    }}
-                  >
-                    <span>∞ Never Ending</span>
-                  </div>
-                ) : (
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={wizardData.expiryDate && wizardData.expiryDate !== 'Never Ending' ? wizardData.expiryDate : '2026-12-31'}
-                    onChange={(e) => updateData('expiryDate', e.target.value)}
-                    title="Expiry Date"
-                    style={{ flex: 1 }}
-                  />
-                )}
-              </div>
-            </div>
 
             {/* Tracking Toggle */}
             <div className="form-group" style={{ gridColumn: 'span 2', background: '#F9FAFB', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
@@ -579,15 +340,29 @@ export const QRWizard = () => {
             </div>
           </div>
 
-          {/* Action Buttons: Save Draft, Cancel, Continue */}
+          {/* Action Buttons: Save Draft / Cancel Edit, Continue */}
           <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button onClick={handleSaveDraft} className="btn btn-secondary btn-sm">
-              Save Draft
-            </button>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setActiveScreen('listing')} className="btn btn-secondary btn-sm">
-                Cancel
+            {wizardMode === 'edit' ? (
+              <button
+                onClick={() => {
+                  resetWizard();
+                  setActiveScreen('listing');
+                }}
+                className="btn btn-secondary btn-sm"
+              >
+                Cancel Edit
               </button>
+            ) : (
+              <button onClick={handleSaveDraft} className="btn btn-secondary btn-sm">
+                Save Draft
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {wizardMode !== 'edit' && (
+                <button onClick={() => setActiveScreen('listing')} className="btn btn-secondary btn-sm">
+                  Cancel
+                </button>
+              )}
               <button onClick={() => setWizardStep(2)} className="btn btn-primary btn-sm">
                 Continue
                 <ArrowRight size={15} />
@@ -1020,29 +795,7 @@ export const QRWizard = () => {
             <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <h2 className="vk-card-title" style={{ fontSize: '15px' }}>Design Controls</h2>
-                <p className="vk-card-subtitle">Approved templates, logo placement & colors</p>
-              </div>
-
-              {/* Approved Template Selection */}
-              <div className="form-group" style={{ marginBottom: '8px' }}>
-                <label className="form-label" style={{ fontSize: '12px' }}>Approved Template</label>
-                <select
-                  className="form-control"
-                  style={{ fontSize: '13px' }}
-                  value={wizardData.template}
-                  onChange={(e) => updateData('template', e.target.value)}
-                >
-                  <option value="VillagKart Branded">VillagKart Branded (#00891D)</option>
-                  <option value="App download poster">App download poster</option>
-                  <option value="Village launch flyer">Village launch flyer</option>
-                  <option value="Shop-on-Wheels vehicle sticker">Shop-on-Wheels vehicle sticker</option>
-                  <option value="Hub entrance poster">Hub entrance poster</option>
-                  <option value="VGE referral card">VGE referral card</option>
-                  <option value="Product catalogue label">Product catalogue label</option>
-                  <option value="Customer feedback card">Customer feedback card</option>
-                  <option value="Delivery feedback card">Delivery feedback card</option>
-                  <option value="WhatsApp campaign image">WhatsApp campaign image</option>
-                </select>
+                <p className="vk-card-subtitle">Custom artwork styling, logo placement & colors</p>
               </div>
 
               {/* Foreground & Background Colors */}
@@ -1598,7 +1351,7 @@ export const QRWizard = () => {
                 Download
               </button>
               <button onClick={() => setWizardStep(5)} className="btn btn-primary btn-sm">
-                Continue to Review & Publish
+                {wizardMode === 'edit' ? 'Continue to Review & Update' : 'Continue to Review & Publish'}
                 <ArrowRight size={15} />
               </button>
             </div>
@@ -1613,168 +1366,300 @@ export const QRWizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Review & Publish</h2>
+              <h2 className="vk-card-title">{wizardMode === 'edit' ? 'Review & Update' : 'Review & Publish'}</h2>
               <p className="vk-card-subtitle">
-                Pre-publish configuration review. Administrative verification and access permissions will be conducted after publishing.
+                {wizardMode === 'edit'
+                  ? 'Verify configuration modifications and update your existing dynamic QR code'
+                  : 'Verify configuration specifications and publish your live dynamic QR code'}
               </p>
             </div>
-            <span className="badge badge-active">Configuration Ready (4/4)</span>
+            <span className="badge badge-active" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
+              {wizardMode === 'edit' ? '✓ Ready to Update' : '✓ Ready to Publish'}
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
-            {/* Optimal 4-Point Configuration Checklist */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[
-                {
-                  title: '1. Basic Information',
-                  desc: `Name: "${wizardData.name || 'Untitled QR'}", Type: ${wizardData.type || 'Campaign'}, Owner: ${wizardData.owner || 'Anita Rao'} · Timeline: ${wizardData.startDate || 'Immediate'} to ${wizardData.expiryDate || 'Never Ending'}`,
-                },
-                {
-                  title: '2. Destination Routing',
-                  desc: `Target URL: ${wizardData.fallbackUrl || 'https://villagkart.com'} (Valid destination)`,
-                },
-                {
-                  title: '3. Territory & Campaign Attribution',
-                  desc: `Campaign: ${wizardData.campaign || 'Direct Routing'}, Hub: ${wizardData.hubId || 'HUB-01'}, Village: ${wizardData.village || 'Phirangipuram Village'}`,
-                },
-                {
-                  title: '4. QR Artwork & Packaging',
-                  desc: `VillagKart Emblem embedded, Color: ${wizardData.fgColor || '#00891D'}, Error Correction: ${wizardData.errorCorrection || 'Q'}`,
-                },
-              ].map((c, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '13px 15px',
-                    background: '#FFFFFF',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <CheckCircle2 size={18} color="#00891D" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>{c.title}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>{c.desc}</div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Informational workflow notice about post-publish verification and permissions */}
-              {/* Informational workflow notice about QR Management publication */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  padding: '13px 15px',
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '8px',
-                }}
-              >
-                <CheckCircle2 size={18} color="#00891D" style={{ marginTop: '2px', flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#166534' }}>
-                    Publish to QR Management Catalog
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#15803D', marginTop: '2px', lineHeight: 1.4 }}>
-                    Publishing immediately activates this QR code in the <strong>QR Management</strong> catalog with real-time routing, analytics attribution, and instant export assets.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Summary Card & Actions */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
+            {/* Left: Clean Configuration Summary (Essential Data Only) */}
             <div style={{
               background: '#FFFFFF',
               border: '1px solid #E5E7EB',
               borderRadius: '12px',
-              padding: '18px',
+              padding: '22px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#111827', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+                Configuration Summary
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
+                {/* QR Name */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500 }}>QR Code Name</span>
+                  <span style={{ fontWeight: 700, color: '#111827', fontSize: '13.5px' }}>
+                    {wizardData.name || 'Untitled QR Code'}
+                  </span>
+                </div>
+
+                {/* Target Destination URL */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '12px', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500, flexShrink: 0 }}>Target Destination</span>
+                  <a
+                    href={wizardData.fallbackUrl || wizardData.androidUrl || 'https://villagkart.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontWeight: 600,
+                      color: '#00891D',
+                      maxWidth: '380px',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word',
+                      textAlign: 'right',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Open destination in new tab"
+                  >
+                    <span>{wizardData.fallbackUrl || wizardData.androidUrl || 'https://villagkart.com'}</span>
+                    <ExternalLink size={12} style={{ flexShrink: 0 }} />
+                  </a>
+                </div>
+
+                {/* Short Redirect Link with 1-click Copy */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500 }}>Shortlink (Dynamic)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      color: '#166534',
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                    }}>
+                      qr.vk.com/{wizardData.redirectCode || 'vk-auto'}
+                    </span>
+                    <button
+                      onClick={copyRedirectUrl}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '3px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      title="Copy shortlink"
+                    >
+                      {copiedLink ? <Check size={12} color="#00891D" /> : <Copy size={12} />}
+                      <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Design Style & Brand Palette */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500 }}>Design & Palette</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '3px',
+                        background: wizardData.fgColor || '#00891D',
+                        display: 'inline-block',
+                        border: '1px solid #D1D5DB',
+                      }} />
+                      <span style={{ fontWeight: 600, color: '#111827', fontFamily: 'monospace', fontSize: '12px' }}>
+                        {wizardData.fgColor || '#00891D'}
+                      </span>
+                    </div>
+                    {wizardData.hasCtaFrame && wizardData.ctaText && (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#00891D',
+                        background: '#E8F5EA',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                      }}>
+                        "{wizardData.ctaText}"
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selected Export Format */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500 }}>Export Preset</span>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#374151',
+                    background: '#F3F4F6',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                  }}>
+                    {exportTab === 'print'
+                      ? `${printLayout === 'poster' ? 'Poster (A3/A2)' : printLayout === 'flyer' ? 'Flyer (A5)' : printLayout === 'sticker' ? 'Vehicle Sticker' : printLayout === 'label' ? 'Product Label' : 'Hub Banner'} · 300 DPI Print`
+                      : `${digitalLayout === 'whatsapp' ? 'WhatsApp Flyer' : digitalLayout === 'social_square' ? 'Social Square' : digitalLayout === 'story' ? 'Story (9:16)' : 'Web Embed'} · Digital Asset`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Live Preview Showcase Card */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              padding: '22px 20px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               textAlign: 'center',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}>
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{
+                padding: '16px',
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                marginBottom: '14px',
+                display: 'flex',
+                justifyContent: 'center',
+              }}>
                 <QRCodeRenderer
                   value={wizardData.fallbackUrl || wizardData.androidUrl || `https://qr.villagkart.com/${wizardData.redirectCode}`}
                   fgColor={wizardData.fgColor}
                   bgColor={wizardData.bgColor}
                   size={140}
-                  hasCtaFrame={false}
+                  hasCtaFrame={wizardData.hasCtaFrame}
+                  ctaText={wizardData.ctaText}
                   showLogo={wizardData.showLogo}
                 />
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>
-                {wizardData.name}
+              <div style={{ fontWeight: 700, fontSize: '14.5px', color: '#111827', marginBottom: '3px' }}>
+                {wizardData.name || 'Untitled QR'}
               </div>
-              <div style={{ fontSize: '12px', color: '#00891D', fontFamily: 'monospace', margin: '4px 0 16px 0', fontWeight: 600 }}>
-                https://qr.villagkart.com/{wizardData.redirectCode}
+              <div style={{ fontSize: '12px', color: '#00891D', fontFamily: 'monospace', fontWeight: 600, marginBottom: '14px' }}>
+                qr.vk.com/{wizardData.redirectCode || 'vk-auto'}
               </div>
 
-              {/* Workflow Actions: Publish QR Code */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button
-                  onClick={handlePublishAndGoToQRManagement}
-                  className="btn btn-primary"
-                  style={{
-                    width: '100%',
-                    padding: '11px 16px',
-                    fontSize: '13.5px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    background: '#00891D',
-                  }}
-                >
-                  <Send size={16} />
-                  Publish & Go to QR Management
-                </button>
-
-                <div style={{
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  fontSize: '11.5px',
-                  color: '#166534',
-                  lineHeight: 1.4,
-                  textAlign: 'left',
-                }}>
-                  ℹ️ <strong>Workflow:</strong> This creates and publishes your QR code directly into <strong>QR Management</strong>.
-                </div>
-
-                <button
-                  onClick={handleSaveDraft}
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', marginTop: '2px' }}
-                >
-                  Save as Inactive Draft
-                </button>
-              </div>
+              {/* Test Scan Simulator Trigger */}
+              <button
+                onClick={() => {
+                  setTestScanModal({
+                    isOpen: true,
+                    qrCode: {
+                      id: 'VK-TEST-' + (wizardData.redirectCode || 'preview'),
+                      name: wizardData.name || 'Untitled QR',
+                      redirectCode: wizardData.redirectCode,
+                      routing: {
+                        androidUrl: wizardData.androidUrl,
+                        iosUrl: wizardData.iosUrl,
+                        fallbackUrl: wizardData.fallbackUrl,
+                        routingBehavior: wizardData.routingBehavior,
+                      },
+                      design: {
+                        fgColor: wizardData.fgColor,
+                        bgColor: wizardData.bgColor,
+                      },
+                    },
+                  });
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  width: '100%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  padding: '7px 12px',
+                  color: '#374151',
+                  borderColor: '#D1D5DB',
+                }}
+              >
+                <Smartphone size={14} color="#00891D" />
+                <span>Simulate Scan on Device</span>
+              </button>
             </div>
           </div>
 
-          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button onClick={() => setWizardStep(4)} className="btn btn-secondary btn-sm">
-              <ArrowLeft size={15} />
-              Back to Export
-            </button>
+          {/* Clean Stepper Navigation Footer with Primary Action Bar */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button
-              onClick={handlePublishAndGoToQRManagement}
-              className="btn btn-primary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, padding: '8px 16px' }}
+              onClick={() => setWizardStep(4)}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <Send size={15} />
-              Publish & Go to QR Management
+              <ArrowLeft size={15} />
+              <span>Back to Export</span>
             </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {wizardMode === 'edit' ? (
+                <>
+                  <button
+                    onClick={() => {
+                      resetWizard();
+                      setActiveScreen('listing');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '8px 16px', fontWeight: 600 }}
+                  >
+                    Cancel Edit
+                  </button>
+
+                  <button
+                    id="btn-update-qr"
+                    onClick={updateWizardQR}
+                    className="btn btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 700,
+                      padding: '9px 22px',
+                      background: '#00891D',
+                      fontSize: '13.5px',
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Update QR Code</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSaveDraft}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '8px 16px', fontWeight: 600 }}
+                  >
+                    Save as Draft
+                  </button>
+
+                  <button
+                    id="btn-publish-qr"
+                    onClick={handlePublishAndGoToQRManagement}
+                    className="btn btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 700,
+                      padding: '9px 22px',
+                      background: '#00891D',
+                      fontSize: '13.5px',
+                    }}
+                  >
+                    <Send size={15} />
+                    <span>Publish QR Code</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
