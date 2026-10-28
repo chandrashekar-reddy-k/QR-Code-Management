@@ -3529,12 +3529,17 @@ export default function AdminPOS() {
 
                               {/* Items list */}
                               <div className="p-4 space-y-1.5">
-                                {ord.items?.map((item, i) => (
-                                  <div key={i} className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                                    <span className="uppercase">{item.product?.name || item.productName} (x{item.quantity})</span>
-                                    <span className="text-slate-900 font-black">₹{(item.price * item.quantity).toFixed(0)}</span>
-                                  </div>
-                                ))}
+                                {ord.items?.map((item, i) => {
+                                  const itemUnitPrice = Number(item.unitPrice ?? item.price ?? item.product?.price ?? 0);
+                                  const itemQty = Number(item.quantity ?? 1);
+                                  const itemTotal = Number(item.totalPrice ?? (itemUnitPrice * itemQty));
+                                  return (
+                                    <div key={i} className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                                      <span className="uppercase">{item.product?.name || item.productName || 'Item'} (x{itemQty})</span>
+                                      <span className="text-slate-900 font-black">₹{isNaN(itemTotal) ? '0' : itemTotal.toFixed(0)}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           );
