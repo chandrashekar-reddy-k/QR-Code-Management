@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, MapPin, AlertCircle, CheckCircle2,
   ChevronRight, Search, RefreshCw, X, Bell, Activity,
   Filter, Clock, ShoppingBag, Maximize2, Minimize2,
-  PowerOff, Loader2
+  PowerOff, Loader2, Flag, Navigation, Compass, Route
 } from 'lucide-react';
 import { GoogleMap, MarkerF, PolylineF, OverlayViewF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
@@ -48,11 +48,14 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyActive, setShowOnlyActive] = useState(false);
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
+  const [roadPath, setRoadPath] = useState([]);
+  const [historyLogs, setHistoryLogs] = useState([]);
   const [mapRef, setMapRef] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 });
   const [mapZoom, setMapZoom] = useState(10);
 
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [showTripStatsCard, setShowTripStatsCard] = useState(true);
   const [turningOffAll, setTurningOffAll] = useState(false);
 
   const handleTurnOffAllLocations = async () => {
@@ -140,6 +143,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
 
   const fetchDetail = async (id) => {
     setSelectedAssignment(id);
+    setShowTripStatsCard(true);
     setDetailLoading(true);
     try {
       const agent = data.performance.find(p => p.assignmentId === id) || filteredPerf.find(p => p.assignmentId === id);
@@ -172,11 +176,68 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
         setAssignmentDetail(detailRes);
       }
 
-      const path = (Array.isArray(historyRes) ? historyRes : [])
-        .map(l => ({ lat: parseFloat(l.lat || l.latitude), lng: parseFloat(l.long || l.longitude || l.lon) }))
+      const rawLogs = (Array.isArray(historyRes) ? historyRes : [])
+        .filter(l => (l.lat || l.latitude) && (l.long || l.longitude || l.lon))
+        .map(l => ({
+          lat: parseFloat(l.lat || l.latitude),
+          lng: parseFloat(l.long || l.longitude || l.lon),
+          subLocation: l.subLocation || l.address || '',
+          timestamp: l.timestamp || l.createdAt || l.time,
+        }))
         .filter(p => !isNaN(p.lat) && !isNaN(p.lng));
 
+      setHistoryLogs(rawLogs);
+
+      const path = rawLogs.map(l => ({ lat: l.lat, lng: l.lng }));
       setBreadcrumbPath(path);
+
+      // Compute road-following driving trajectory using Google Maps DirectionsService
+      if (path.length > 1 && window.google?.maps?.DirectionsService) {
+        try {
+          const directionsService = new window.google.maps.DirectionsService();
+          const origin = path[0];
+          const destination = path[path.length - 1];
+
+          // Sample up to 8 waypoints along the route for accurate road adherence
+          const waypoints = [];
+          if (path.length > 2) {
+            const step = Math.max(1, Math.floor((path.length - 2) / 6));
+            for (let i = step; i < path.length - 1; i += step) {
+              if (waypoints.length < 8) {
+                waypoints.push({
+                  location: new window.google.maps.LatLng(path[i].lat, path[i].lng),
+                  stopover: false
+                });
+              }
+            }
+          }
+
+          directionsService.route(
+            {
+              origin: new window.google.maps.LatLng(origin.lat, origin.lng),
+              destination: new window.google.maps.LatLng(destination.lat, destination.lng),
+              waypoints,
+              travelMode: window.google.maps.TravelMode.DRIVING,
+              optimizeWaypoints: false
+            },
+            (result, status) => {
+              if (status === window.google.maps.DirectionsStatus.OK && result.routes?.[0]?.overview_path) {
+                const roadCoords = result.routes[0].overview_path.map(p => ({
+                  lat: p.lat(),
+                  lng: p.lng()
+                }));
+                setRoadPath(roadCoords);
+              } else {
+                setRoadPath(path);
+              }
+            }
+          );
+        } catch (_) {
+          setRoadPath(path);
+        }
+      } else {
+        setRoadPath(path);
+      }
 
       // 3. Focus map on most relevant coordinates
       let resolvedPos = null;
@@ -233,6 +294,64 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     const age = new Date().getTime() - new Date(timeVal).getTime();
     return age >= 0 && age < 300 * 1000;
   };
+
+  // Helper to calculate haversine distance between two points in km
+  const getDistanceKm = (coord1, coord2) => {
+    if (!coord1 || !coord2) return 0;
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(coord2.lat - coord1.lat);
+    const dLon = toRad(coord2.lng - coord1.lng);
+    const lat1 = toRad(coord1.lat);
+    const lat2 = toRad(coord2.lat);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Calculate trip stats for the selected agent
+  const selectedTripStats = (() => {
+    if (!selectedAssignment || breadcrumbPath.length === 0) return null;
+
+    let totalDistKm = 0;
+    for (let i = 1; i < breadcrumbPath.length; i++) {
+      totalDistKm += getDistanceKm(breadcrumbPath[i - 1], breadcrumbPath[i]);
+    }
+
+    const firstLog = historyLogs[0];
+    const lastLog = historyLogs[historyLogs.length - 1];
+
+    let startTimeStr = 'Start of Shift';
+    let lastActiveStr = 'Live';
+    let durationStr = '--';
+
+    if (firstLog?.timestamp) {
+      const startD = new Date(firstLog.timestamp);
+      startTimeStr = startD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (lastLog?.timestamp) {
+        const lastD = new Date(lastLog.timestamp);
+        lastActiveStr = lastD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const diffMs = Math.max(0, lastD.getTime() - startD.getTime());
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+    }
+
+    return {
+      distanceKm: totalDistKm.toFixed(1),
+      startTime: startTimeStr,
+      lastActive: lastActiveStr,
+      duration: durationStr,
+      startLocation: firstLog?.subLocation || 'Origin Station',
+      currentLocation: lastLog?.subLocation || 'In Transit',
+      totalLogs: historyLogs.length
+    };
+  })();
 
   const filteredPerf = data.performance.filter(p => {
     const q = searchQuery.toLowerCase();
@@ -319,7 +438,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                {/* Turn Off All Agents button hidden as requested */}
+                {/* <button
                   onClick={handleTurnOffAllLocations}
                   disabled={turningOffAll}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition-all active:scale-95 disabled:opacity-50"
@@ -331,18 +451,21 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     <PowerOff size={13} className="text-rose-600" />
                   )}
                   <span>Turn Off All Agents</span>
-                </button>
+                </button> */}
 
                 {selectedAssignment ? (
                   <>
                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-100 uppercase tracking-widest">
                       <Activity size={12} className="animate-pulse" /> Selected
                     </span>
+
                     <button
                       onClick={() => {
                         setSelectedAssignment(null);
                         setAssignmentDetail(null);
                         setBreadcrumbPath([]);
+                        setRoadPath([]);
+                        setHistoryLogs([]);
                         setMapZoom(isMapFullscreen ? 12 : 10);
                         const validLocs = liveLocations
                           .map(l => ({ lat: parseFloat(l.lat || l.latitude), lng: parseFloat(l.long || l.longitude || l.lon) }))
@@ -414,6 +537,87 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   </button>
                 )}
               </div>
+
+              {/* Professional Floating Trip Stats Overlay Card when Agent is Selected */}
+              {selectedAssignment && selectedTripStats && (
+                showTripStatsCard ? (
+                  <div className="absolute top-3 left-3 z-20 max-w-sm w-auto bg-slate-900/90 text-white rounded-2xl p-3.5 shadow-2xl border border-slate-700/60 backdrop-blur-md transition-all animate-in fade-in slide-in-from-top duration-300">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2.5 mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                        <div>
+                          <p className="text-xs font-black tracking-wide text-white uppercase leading-none">
+                            {data.performance.find(p => p.assignmentId === selectedAssignment)?.agentName || 'Agent Trip'}
+                          </p>
+                          <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                            {data.performance.find(p => p.assignmentId === selectedAssignment)?.routeName || 'Live Route Tracking'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">
+                          {selectedTripStats.duration}
+                        </span>
+                        <button
+                          onClick={() => setShowTripStatsCard(false)}
+                          className="w-5 h-5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-xs font-bold"
+                          title="Minimize Trip HUD"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      {/* Origin / Start */}
+                      <div className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
+                          <Flag size={11} className="shrink-0" />
+                          <span>Started</span>
+                        </div>
+                        <p className="text-white font-extrabold text-xs">{selectedTripStats.startTime}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5" title={selectedTripStats.startLocation}>
+                          {selectedTripStats.startLocation}
+                        </p>
+                      </div>
+
+                      {/* Current Position */}
+                      <div className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[10px] uppercase tracking-wider mb-1">
+                          <Navigation size={11} className="shrink-0" />
+                          <span>Current</span>
+                        </div>
+                        <p className="text-white font-extrabold text-xs">{selectedTripStats.lastActive}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5" title={selectedTripStats.currentLocation}>
+                          {selectedTripStats.currentLocation}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Trip Distance & Log Pings Bar */}
+                    <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-800/80 text-[11px] text-slate-300 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Route size={13} className="text-emerald-400" />
+                        Distance Covered: <strong className="text-white font-black">{selectedTripStats.distanceKm} km</strong>
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {selectedTripStats.totalLogs} GPS Pings
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Minimized Floating Button to Reopen */
+                  <button
+                    onClick={() => setShowTripStatsCard(true)}
+                    className="absolute top-3 left-3 z-20 flex items-center gap-2 px-3 py-2 bg-slate-900/90 hover:bg-black text-white rounded-xl shadow-xl border border-slate-700/60 backdrop-blur-md transition-all hover:scale-105 active:scale-95 text-xs font-bold"
+                    title="Open Trip Info"
+                  >
+                    <Route size={14} className="text-emerald-400" />
+                    <span>Trip Info</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                  </button>
+                )
+              )}
 
               {isLoaded ? (
                 <GoogleMap
@@ -518,18 +722,93 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     );
                   })()}
 
-                  {/* Polyline path for selected agent breadcrumb trail */}
-                  {selectedAssignment && breadcrumbPath.length > 1 && (
-                    <PolylineF
-                      path={breadcrumbPath}
-                      options={{
-                        strokeColor: '#10b981',
-                        strokeOpacity: 0.85,
-                        strokeWeight: 4,
-                        geodesic: true
-                      }}
-                    />
-                  )}
+                  {/* Start Point (Origin Pin) for Selected Agent — Only shown when vehicle has moved away from start (>30m) so it does not collide/overlay with current vehicle marker */}
+                  {selectedAssignment && breadcrumbPath.length > 1 && (() => {
+                    const startCoord = breadcrumbPath[0];
+                    const currentCoord = breadcrumbPath[breadcrumbPath.length - 1];
+                    const distFromStartMeters = getDistanceKm(startCoord, currentCoord) * 1000;
+                    
+                    // If the agent hasn't moved yet (start position == current position), don't overlap the flag on top of vehicle pointer
+                    if (distFromStartMeters < 30) return null;
+
+                    const startTimeText = selectedTripStats?.startTime || 'Start';
+                    const startLabel = `START: ${startTimeText}`;
+                    const textWidth = Math.max(startLabel.length * 7.5 + 24, 90);
+                    const svgWidth = textWidth + 10;
+                    const centerX = svgWidth / 2;
+
+                    const startPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                        <!-- Origin Badge -->
+                        <rect x="5" y="4" width="${textWidth}" height="22" rx="11" fill="#047857" stroke="#ffffff" stroke-width="2"/>
+                        <!-- White inner circle -->
+                        <circle cx="16" cy="15" r="4.5" fill="#34d399"/>
+                        <text x="26" y="19" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="900" fill="#ffffff" letter-spacing="0.5">${startLabel}</text>
+                        <!-- Pin stem -->
+                        <path d="M ${centerX} 26 L ${centerX + 5} 34 L ${centerX - 5} 34 Z" fill="#047857"/>
+                        <!-- Flag circle badge -->
+                        <circle cx="${centerX}" cy="44" r="12" fill="#059669" stroke="#ffffff" stroke-width="2.5"/>
+                        <!-- Flag Icon SVG inside -->
+                        <path d="M ${centerX - 4} 39 L ${centerX - 4} 49 M ${centerX - 4} 39 L ${centerX + 4} 41.5 L ${centerX - 4} 44 Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    `)}`;
+
+                    return (
+                      <MarkerF
+                        key="selected-start-point-marker"
+                        position={startCoord}
+                        title={`Trip Started at ${startTimeText}`}
+                        icon={{
+                          url: startPinSvg,
+                          scaledSize: new window.google.maps.Size(svgWidth, 64),
+                          anchor: new window.google.maps.Point(centerX, 58)
+                        }}
+                      />
+                    );
+                  })()}
+
+                  {/* Polyline path for selected agent road-following navigation trail */}
+                  {selectedAssignment && (roadPath.length > 1 || breadcrumbPath.length > 1) && (() => {
+                    const activePath = roadPath.length > 1 ? roadPath : breadcrumbPath;
+                    return (
+                      <>
+                        {/* Glow / Outline path underlayer */}
+                        <PolylineF
+                          path={activePath}
+                          options={{
+                            strokeColor: '#047857',
+                            strokeOpacity: 0.35,
+                            strokeWeight: 7,
+                            geodesic: true
+                          }}
+                        />
+                        {/* Vibrant core line following actual roads with directional navigation arrows */}
+                        <PolylineF
+                          path={activePath}
+                          options={{
+                            strokeColor: '#10b981',
+                            strokeOpacity: 0.95,
+                            strokeWeight: 4,
+                            geodesic: true,
+                            icons: window.google?.maps?.SymbolPath ? [
+                              {
+                                icon: {
+                                  path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                  scale: 2.5,
+                                  strokeColor: '#ffffff',
+                                  fillColor: '#047857',
+                                  fillOpacity: 1,
+                                  strokeWeight: 1.5,
+                                },
+                                offset: '50%',
+                                repeat: '120px'
+                              }
+                            ] : undefined
+                          }}
+                        />
+                      </>
+                    );
+                  })()}
 
                   {/* Assigned Route Villages for Selected Agent */}
                   {selectedAssignment && assignmentDetail?.breakdown && assignmentDetail.breakdown.filter(v => v.latitude && v.longitude).map((v, i) => {
@@ -708,11 +987,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       <p className="text-[10px] font-medium text-gray-400 truncate mt-0.5">
                         {p.routeName || 'No Route'}
                       </p>
-                      <div className="flex items-center gap-2 mt-1 text-[9px] font-semibold text-gray-500">
-                        <span>Sales: ₹{(p.totalSales || 0).toLocaleString()}</span>
-                        <span>•</span>
-                        <span>{p.visitedCount ?? 0}/{p.assignedCount ?? 0}</span>
-                      </div>
+
                     </div>
                   </div>
 

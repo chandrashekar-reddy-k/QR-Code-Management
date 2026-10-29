@@ -511,6 +511,12 @@ const ViewHomeDeliveryOrder = () => {
   const handleStatusUpdate = async () => {
     if (!selectedStatus || !id) return;
 
+    if (selectedStatus === OrderStatus.DELIVERED && order?.deliveryType !== "PICKUP_STORE") {
+      setShowOtpModal(true);
+      setStatusUpdateOpen(false);
+      return;
+    }
+
     if (order?.status === OrderStatus.PROCESSING && selectedStatus === OrderStatus.READY_FOR_PICKUP) {
       const allPacked = order.products.every(p => packedItems[p.id]);
       if (!allPacked) {
@@ -952,7 +958,7 @@ const ViewHomeDeliveryOrder = () => {
                 </div>
                 <div className="relative" ref={dropdownRef}>
                   {/* Delivery OTP Actions for Out For Delivery orders */}
-                  {(order.status === OrderStatus.OUT_FOR_DELIVERY || (order.status as string) === "IN_TRANSIT") && (
+                  {(order.status === OrderStatus.READY_FOR_PICKUP || order.status === OrderStatus.OUT_FOR_DELIVERY || (order.status as string) === "IN_TRANSIT") && (
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
