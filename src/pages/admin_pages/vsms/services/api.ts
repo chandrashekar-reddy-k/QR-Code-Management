@@ -190,6 +190,7 @@ export const ordersAPI = {
   getReturnReport: (params) => api.get('/orders/return-report', { params }),
   getItemWiseReport: (params) => api.get('/orders/item-wise-report', { params }),
   freezeSession: (data) => api.post('/orders/freeze-session', data),
+  payCreditOrder: (orderId, data) => api.post(`/orders/${orderId}/pay-credit`, data),
 };
 
 export const reportsAPI = {

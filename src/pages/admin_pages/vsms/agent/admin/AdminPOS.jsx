@@ -523,6 +523,17 @@ export default function AdminPOS() {
       if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
         return toast.error('Valid 10-digit mobile number required for Credit (Udhar)');
       }
+
+      // Check available credit and approved limit
+      const approvedLimit = Number(posCustomerData?.approvedLimit ?? posCustomerData?.creditLimit ?? 5000);
+      const currentDue = Number(posCustomerData?.outstandingBalance ?? posCustomerData?.creditBalance ?? 0);
+      const available = posCustomerData?.availableCredit !== undefined 
+        ? Number(posCustomerData.availableCredit) 
+        : Math.max(0, approvedLimit - currentDue);
+
+      if (totalAmount > available || (currentDue + totalAmount) > approvedLimit) {
+        return toast.error(`Credit limit exceeded! Order: ₹${totalAmount.toFixed(2)}, Available Credit: ₹${available.toFixed(2)} (Approved: ₹${approvedLimit.toFixed(2)}, Current Due: ₹${currentDue.toFixed(2)})`);
+      }
     }
 
     if (selectedPaymentMode === 'CASH_UPI') {

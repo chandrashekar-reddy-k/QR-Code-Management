@@ -192,6 +192,14 @@ export const deactivateAllAgents = async (storeId?: string) => {
     return response.data;
 };
 
+/**
+ * Admin / Testing: Simulate moving agent along test route
+ */
+export const simulateAgentTrip = async (data: { userId: string; reset?: boolean }) => {
+    const response = await api.post('/location/simulate', data);
+    return response.data;
+};
+
 export default {
     logLocation,
     startLiveTracking,
@@ -200,5 +208,6 @@ export default {
     isTrackingActive,
     getLiveLocations,
     getLocationHistory,
-    deactivateAllAgents
+    deactivateAllAgents,
+    simulateAgentTrip
 };
