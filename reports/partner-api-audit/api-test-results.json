@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Health Check (GET /health)",
+    "method": "GET",
+    "path": "/health",
+    "status": 200,
+    "durationMs": 56,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "API v1 Health (GET /api/v1/health)",
+    "method": "GET",
+    "path": "/api/v1/health",
+    "status": 200,
+    "durationMs": 3,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "API v1 Check (GET /api/v1/check)",
+    "method": "GET",
+    "path": "/api/v1/check",
+    "status": 200,
+    "durationMs": 5,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "Warehouses List (GET /api/v1/warehouses)",
+    "method": "GET",
+    "path": "/api/v1/warehouses",
+    "status": 200,
+    "durationMs": 78,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "Units List (GET /api/v1/unit/getall)",
+    "method": "GET",
+    "path": "/api/v1/unit/getall",
+    "status": 200,
+    "durationMs": 31,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "Categories List (GET /api/v1/category/getCategoryList)",
+    "method": "GET",
+    "path": "/api/v1/category/getCategoryList",
+    "status": 200,
+    "durationMs": 107,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "Subcategories List (GET /api/v1/subCategory/getSubCategoryList)",
+    "method": "GET",
+    "path": "/api/v1/subCategory/getSubCategoryList",
+    "status": 200,
+    "durationMs": 156,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200, got 200"
+  },
+  {
+    "name": "Public Invoice View (GET /api/v1/vsms/orders/:id)",
+    "method": "GET",
+    "path": "/api/v1/vsms/orders/4e971bb0-4018-42a3-b20f-055fa1db8ce2",
+    "status": 200,
+    "durationMs": 140,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 200,404, got 200"
+  },
+  {
+    "name": "Orders My-History Auth Guard (GET /api/v1/vsms/orders/my-history unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/vsms/orders/my-history",
+    "status": 401,
+    "durationMs": 4,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  },
+  {
+    "name": "Session Sales Auth Guard (GET /api/v1/vsms/orders/session-sales unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/vsms/orders/session-sales",
+    "status": 401,
+    "durationMs": 14,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  },
+  {
+    "name": "Partner Settings Auth Guard (GET /api/v1/partner/settings unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/partner/settings",
+    "status": 401,
+    "durationMs": 14,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  },
+  {
+    "name": "Inventory Alerts Auth Guard (GET /api/v1/inventorymanagement/alerts unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/inventorymanagement/alerts",
+    "status": 200,
+    "durationMs": 60,
+    "passed": false,
+    "result": "FAIL",
+    "note": "Expected 401, got 200"
+  },
+  {
+    "name": "User Shifts Auth Guard (GET /api/v1/vsms/users/shifts unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/vsms/users/shifts",
+    "status": 401,
+    "durationMs": 11,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  },
+  {
+    "name": "Notifications Read-All Auth Guard (PUT /api/v1/vsms/notifications/read-all unauthenticated)",
+    "method": "PUT",
+    "path": "/api/v1/vsms/notifications/read-all",
+    "status": 401,
+    "durationMs": 20,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  },
+  {
+    "name": "Cash Status Auth Guard (GET /api/v1/agent/cash/status unauthenticated)",
+    "method": "GET",
+    "path": "/api/v1/agent/cash/status",
+    "status": 401,
+    "durationMs": 9,
+    "passed": true,
+    "result": "PASS",
+    "note": "Expected 401, got 401"
+  }
+]

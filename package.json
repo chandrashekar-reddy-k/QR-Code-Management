@@ -1,0 +1,91 @@
+{
+  "name": "villagkart-partner-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "prisma migrate deploy && node server.js",
+    "postinstall": "prisma generate",
+    "dev": "nodemon --max-http-header-size=65536 server.js",
+    "generate-keys": "node generateKeys.js",
+    "test": "node --test tests/*.test.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "lint:fix": "eslint --fix .",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "node ./scripts/prisma-migrate-dev-guard.cjs && prisma migrate dev --name init_migration",
+    "prisma:repair-checksums": "prisma db execute --schema prisma/schema.prisma --file prisma/scripts/repair_migration_checksums.sql",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:fix-failed-migration": "prisma db execute --schema prisma/schema.prisma --file prisma/scripts/remove_failed_migration_record.sql",
+    "prisma:seed": "prisma db seed",
+    "prisma:extract-seed": "node prisma/scripts/extract-seed-from-backup.js",
+    "prisma:seed-delivery-settings": "node prisma/scripts/seed-delivery-settings-defaults.js",
+    "prisma:reset": "prisma migrate reset --skip-seed",
+    "audit:replay-fallback": "node scripts/replayAuditOutboxFallback.js"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@aws-sdk/s3-request-presigner": "^3.750.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.109.0",
+    "@turf/turf": "^7.3.5",
+    "adm-zip": "^0.5.17",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "csv-parser": "^3.2.1",
+    "date-fns": "^4.4.0",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "express-fileupload": "^1.5.1",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "firebase-admin": "^13.5.0",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.10.1",
+    "morgan": "^1.10.0",
+    "msg91": "^2.2.8",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.10.0",
+    "pg": "^8.14.0",
+    "pm2": "^6.0.8",
+    "razorpay": "^2.9.6",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "stream": "^0.0.3",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.5.1",
+    "prisma": "^6.19.3"
+  }
+}

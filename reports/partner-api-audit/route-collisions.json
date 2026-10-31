@@ -1,0 +1,342 @@
+[
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-186",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 198
+    },
+    "shadowedRoute": {
+      "id": "EP-419",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/my-history",
+      "line": 787
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 198 can shadow 'GET /api/v1/vsms/orders/my-history' at line 787 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-186",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 198
+    },
+    "shadowedRoute": {
+      "id": "EP-420",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/session-sales",
+      "line": 788
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 198 can shadow 'GET /api/v1/vsms/orders/session-sales' at line 788 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-186",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 198
+    },
+    "shadowedRoute": {
+      "id": "EP-434",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/session-sales",
+      "line": 994
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 198 can shadow 'GET /api/v1/vsms/orders/session-sales' at line 994 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-186",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 198
+    },
+    "shadowedRoute": {
+      "id": "EP-435",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/return-report",
+      "line": 995
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 198 can shadow 'GET /api/v1/vsms/orders/return-report' at line 995 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-186",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 198
+    },
+    "shadowedRoute": {
+      "id": "EP-436",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/item-wise-report",
+      "line": 996
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 198 can shadow 'GET /api/v1/vsms/orders/item-wise-report' at line 996 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-422",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 793
+    },
+    "shadowedRoute": {
+      "id": "EP-434",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/session-sales",
+      "line": 994
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 793 can shadow 'GET /api/v1/vsms/orders/session-sales' at line 994 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-422",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 793
+    },
+    "shadowedRoute": {
+      "id": "EP-435",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/return-report",
+      "line": 995
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 793 can shadow 'GET /api/v1/vsms/orders/return-report' at line 995 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/admin/vsmsRoutes.js",
+    "parameterRoute": {
+      "id": "EP-422",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/:id",
+      "line": 793
+    },
+    "shadowedRoute": {
+      "id": "EP-436",
+      "method": "GET",
+      "path": "/api/v1/vsms/orders/item-wise-report",
+      "line": 996
+    },
+    "reason": "Route 'GET /api/v1/vsms/orders/:id' at line 793 can shadow 'GET /api/v1/vsms/orders/item-wise-report' at line 996 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-530",
+      "method": "GET",
+      "path": "/api/v1/agent/pre-orders/:id",
+      "line": 97
+    },
+    "shadowedRoute": {
+      "id": "EP-646",
+      "method": "GET",
+      "path": "/api/v1/agent/pre-orders/search-customer",
+      "line": 264
+    },
+    "reason": "Route 'GET /api/v1/agent/pre-orders/:id' at line 97 can shadow 'GET /api/v1/agent/pre-orders/search-customer' at line 264 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-575",
+      "method": "POST",
+      "path": "/api/v1/agent/routes/notifications/:id/read",
+      "line": 155
+    },
+    "shadowedRoute": {
+      "id": "EP-577",
+      "method": "POST",
+      "path": "/api/v1/agent/routes/notifications/read-all",
+      "line": 157
+    },
+    "reason": "Route 'POST /api/v1/agent/routes/notifications/:id/read' at line 155 can shadow 'POST /api/v1/agent/routes/notifications/read-all' at line 157 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-576",
+      "method": "POST",
+      "path": "/api/v1/agent/agent-routes/notifications/:id/read",
+      "line": 156
+    },
+    "shadowedRoute": {
+      "id": "EP-578",
+      "method": "POST",
+      "path": "/api/v1/agent/agent-routes/notifications/read-all",
+      "line": 158
+    },
+    "reason": "Route 'POST /api/v1/agent/agent-routes/notifications/:id/read' at line 156 can shadow 'POST /api/v1/agent/agent-routes/notifications/read-all' at line 158 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-691",
+      "method": "GET",
+      "path": "/api/v1/agent-routes/pre-orders/:id",
+      "line": 97
+    },
+    "shadowedRoute": {
+      "id": "EP-807",
+      "method": "GET",
+      "path": "/api/v1/agent-routes/pre-orders/search-customer",
+      "line": 264
+    },
+    "reason": "Route 'GET /api/v1/agent-routes/pre-orders/:id' at line 97 can shadow 'GET /api/v1/agent-routes/pre-orders/search-customer' at line 264 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-736",
+      "method": "POST",
+      "path": "/api/v1/agent-routes/routes/notifications/:id/read",
+      "line": 155
+    },
+    "shadowedRoute": {
+      "id": "EP-738",
+      "method": "POST",
+      "path": "/api/v1/agent-routes/routes/notifications/read-all",
+      "line": 157
+    },
+    "reason": "Route 'POST /api/v1/agent-routes/routes/notifications/:id/read' at line 155 can shadow 'POST /api/v1/agent-routes/routes/notifications/read-all' at line 157 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentRoutes.js",
+    "parameterRoute": {
+      "id": "EP-737",
+      "method": "POST",
+      "path": "/api/v1/agent-routes/agent-routes/notifications/:id/read",
+      "line": 156
+    },
+    "shadowedRoute": {
+      "id": "EP-739",
+      "method": "POST",
+      "path": "/api/v1/agent-routes/agent-routes/notifications/read-all",
+      "line": 158
+    },
+    "reason": "Route 'POST /api/v1/agent-routes/agent-routes/notifications/:id/read' at line 156 can shadow 'POST /api/v1/agent-routes/agent-routes/notifications/read-all' at line 158 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-814",
+      "method": "GET",
+      "path": "/api/v1/agent-transfers/:id",
+      "line": 12
+    },
+    "shadowedRoute": {
+      "id": "EP-822",
+      "method": "GET",
+      "path": "/api/v1/agent-transfers/agent-transfers",
+      "line": 22
+    },
+    "reason": "Route 'GET /api/v1/agent-transfers/:id' at line 12 can shadow 'GET /api/v1/agent-transfers/agent-transfers' at line 22 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-816",
+      "method": "POST",
+      "path": "/api/v1/agent-transfers/:id/approve",
+      "line": 14
+    },
+    "shadowedRoute": {
+      "id": "EP-821",
+      "method": "POST",
+      "path": "/api/v1/agent-transfers/agent-transfers",
+      "line": 21
+    },
+    "reason": "Route 'POST /api/v1/agent-transfers/:id/approve' at line 14 can shadow 'POST /api/v1/agent-transfers/agent-transfers' at line 21 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-818",
+      "method": "POST",
+      "path": "/api/v1/agent-transfers/:id/reject",
+      "line": 16
+    },
+    "shadowedRoute": {
+      "id": "EP-821",
+      "method": "POST",
+      "path": "/api/v1/agent-transfers/agent-transfers",
+      "line": 21
+    },
+    "reason": "Route 'POST /api/v1/agent-transfers/:id/reject' at line 16 can shadow 'POST /api/v1/agent-transfers/agent-transfers' at line 21 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-832",
+      "method": "GET",
+      "path": "/api/v1/admin/agent-transfers/:id",
+      "line": 12
+    },
+    "shadowedRoute": {
+      "id": "EP-840",
+      "method": "GET",
+      "path": "/api/v1/admin/agent-transfers/agent-transfers",
+      "line": 22
+    },
+    "reason": "Route 'GET /api/v1/admin/agent-transfers/:id' at line 12 can shadow 'GET /api/v1/admin/agent-transfers/agent-transfers' at line 22 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-834",
+      "method": "POST",
+      "path": "/api/v1/admin/agent-transfers/:id/approve",
+      "line": 14
+    },
+    "shadowedRoute": {
+      "id": "EP-839",
+      "method": "POST",
+      "path": "/api/v1/admin/agent-transfers/agent-transfers",
+      "line": 21
+    },
+    "reason": "Route 'POST /api/v1/admin/agent-transfers/:id/approve' at line 14 can shadow 'POST /api/v1/admin/agent-transfers/agent-transfers' at line 21 in Express route registration order."
+  },
+  {
+    "severity": "HIGH",
+    "file": "routes/agentTransferRoutes.js",
+    "parameterRoute": {
+      "id": "EP-836",
+      "method": "POST",
+      "path": "/api/v1/admin/agent-transfers/:id/reject",
+      "line": 16
+    },
+    "shadowedRoute": {
+      "id": "EP-839",
+      "method": "POST",
+      "path": "/api/v1/admin/agent-transfers/agent-transfers",
+      "line": 21
+    },
+    "reason": "Route 'POST /api/v1/admin/agent-transfers/:id/reject' at line 16 can shadow 'POST /api/v1/admin/agent-transfers/agent-transfers' at line 21 in Express route registration order."
+  }
+]
