@@ -160,6 +160,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       return true;
     }
 
+    // QR Studio fallback - visible to all partner portal users
+    if (slugCode === 'qr_studio' || slugCode === 'qr' || cleanName.toLowerCase().includes('qr studio')) {
+      return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -404,6 +409,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isProcurementOpen, setIsProcurementOpen] = useState(
     location.pathname.startsWith('/procurement')
   );
+  const [isQrStudioOpen, setIsQrStudioOpen] = useState(
+    location.pathname.startsWith('/qr-studio')
+  );
   const [isMasterSetupOpen, setIsMasterSetupOpen] = useState(
     location.pathname.startsWith('/master-setup') || location.pathname.startsWith('/categories')
   );
@@ -490,6 +498,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isPricingOpen: setIsPricingOpen,
       isBarcodeOpen: setIsBarcodeOpen,
       isProcurementOpen: setIsProcurementOpen,
+      isQrStudioOpen: setIsQrStudioOpen,
       isVsmsOpen: setIsVsmsOpen,
       isAssetsOpen: setIsAssetsOpen,
       isRouteManagementOpen: setIsRouteManagementOpen,
@@ -523,6 +532,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isPricingOpen,
       isBarcodeOpen,
       isProcurementOpen,
+      isQrStudioOpen,
       isVsmsOpen,
       isAssetsOpen,
       isRouteManagementOpen,
@@ -559,6 +569,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isExpenseManagementOpen,
       isInventoryManagementOpen,
       isCashManagementOpen,
+      isQrStudioOpen,
     ]
   );
 
@@ -1010,6 +1021,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       initialStateCheckers.isDeliverySettingsOpen(location.pathname)
     );
     setIsPackingErpOpen(location.pathname.startsWith('/packing-erp'));
+    setIsQrStudioOpen(location.pathname.startsWith('/qr-studio'));
   }, [location.pathname]);
 
   // ============================================
@@ -1185,7 +1197,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         (section.stateKey === "isExpenseManagementOpen" &&
           location.pathname.startsWith("/expenses")) ||
         (section.stateKey === "isCashManagementOpen" &&
-          (location.pathname === "/vsms/cash-management" || location.pathname.startsWith("/vsms/cash-reconciliation")));
+          (location.pathname === "/vsms/cash-management" || location.pathname.startsWith("/vsms/cash-reconciliation"))) ||
+        (section.stateKey === "isQrStudioOpen" &&
+          location.pathname.startsWith("/qr-studio"));
 
       return (
         <div className="mt-1" key={section.stateKey}>

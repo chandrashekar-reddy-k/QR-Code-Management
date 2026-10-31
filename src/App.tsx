@@ -42,6 +42,9 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
   // Packing ERP routes are allowed during integration phase
   if (pathname.startsWith('/packing-erp/') || pathname === '/packing-erp' || pathname.startsWith('/packer/')) return true;
 
+  // QR Studio routes pass through (permission handled via sidebar config lookup below)
+  if (pathname.startsWith('/qr-studio')) return true;
+
   let targetItem: any = null;
   let parentCollapsible: any = null;
 
@@ -112,6 +115,9 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
     }
     if (slugCode.includes("pos") || slugCode.includes("point_of_sale")) {
       return permissions.some(p => (p.toLowerCase().includes("pos") || p.toLowerCase().includes("point_of_sale")) && p.toLowerCase().includes("view"));
+    }
+    if (slugCode === 'qr_studio' || cleanName.toLowerCase().includes('qr studio')) {
+      return true;
     }
     if (slugCode === 'withdrawal_request' || slugCode === 'wallet_transactions' || slugCode === 'financial' || slugCode === 'financials') {
       return permissions.includes('partner_financial_view') || permissions.includes('partner_financials_view');

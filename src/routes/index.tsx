@@ -685,6 +685,9 @@ const RouteAppOrders = lazy(() => import("../pages/admin_pages/vsms/agent/RouteA
 
 const PublicInvoiceView = lazy(() => import("../pages/public_pages/PublicInvoiceView"));
 
+// QR Studio
+const QRStudioPage = lazy(() => import("../pages/admin_pages/qr-studio/QRStudioPage"));
+
 // Route configuration interface
 export interface RouteConfig {
   path: string;
@@ -2213,6 +2216,41 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/pricing/product-pricing",
     component: ProductPricing,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/qr-dashboard",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/management",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/scan-history",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/audit-history",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/create",
+    component: QRStudioPage,
+    requiresAuth: true,
+  },
+  {
+    path: "/qr-studio/*",
+    component: QRStudioPage,
     requiresAuth: true,
   },
   {

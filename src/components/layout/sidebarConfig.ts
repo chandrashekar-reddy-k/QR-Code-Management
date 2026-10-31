@@ -42,6 +42,9 @@ import {
   ArrowRightLeft,
   Shield,
   RotateCcw,
+  LayoutDashboard,
+  History,
+  QrCode,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -113,6 +116,7 @@ export const activeCheckers = {
 
 // Initial state check functions for useEffect
 export const initialStateCheckers = {
+  isQrStudioOpen: (pathname: string) => pathname.startsWith("/qr-studio"),
   isProductsOpen: (pathname: string) => pathname.startsWith("/products"),
   isOrderManagementOpen: (pathname: string) =>
     pathname.startsWith("/orders") ||
@@ -669,6 +673,34 @@ export const sidebarConfig: MenuSection[] = [
   //   icon: Wallet,
   // },
 
+  // QR Studio Section (Above Reports)
+  {
+    type: "collapsible",
+    permission: "Partner: QR Studio",
+    label: "QR Studio",
+    icon: QrCode,
+    stateKey: "isQrStudioOpen",
+    hasSubPermissions: false,
+    activeCheck: (pathname: string) => pathname.startsWith("/qr-studio"),
+    subItems: [
+      {
+        path: "/qr-studio/qr-dashboard",
+        label: "QR Dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        path: "/qr-studio/management",
+        label: "QR Management",
+        icon: QrCode,
+      },
+      {
+        path: "/qr-studio/scan-history",
+        label: "Audit History",
+        icon: History,
+      },
+    ],
+  },
+
   // REPORTS Section
   {
     type: "section",
@@ -964,4 +996,5 @@ export const sidebarConfig: MenuSection[] = [
   //     { path: "/locations/areas", label: "Areas", icon: Navigation },
   //   ],
   // },
+
 ];
