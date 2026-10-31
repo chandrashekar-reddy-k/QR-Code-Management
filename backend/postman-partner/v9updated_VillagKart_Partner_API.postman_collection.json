@@ -1,0 +1,2446 @@
+{
+	"info": {
+		"_postman_id": "villagkart-partner-api-2025",
+		"name": "VillagKart Partner API",
+		"description": "Complete Postman collection for VillagKart Partner Panel APIs. Includes Health, Auth, Store, Supplier, Products, Orders, Delivery Settings (Types, Route Maps, Scheduled Slots, Route Pincodes, Pickup Slots, Warehouse Blackouts), Partner Categories (warehouse assortment), Product Management (Master Products, Import, Units, Unit Types, Brands, Categories, Subcategories, Toggle, CRUD, Ratings), and Variant Management (Create, Get, Update, Delete).\n\n**Delivery Settings (base: /api/v1/partner/delivery-settings):**\n- **MasterDeliverySetting** = global defaults (FAST, SCHEDULED, PICKUP_STORE); **WarehouseDeliverySetting** = per-warehouse overrides. GET /types and GET / return merged values (warehouse overrides when present, else Master).\n- GET/PUT / — Get/update general settings (servicePincodes, opensAt, closesAt, pickupTimeSlots, isPickupStore, selfPickupMode)\n- GET/PUT /types — Get/update delivery types; PUT body: { deliverySettings: [{ isEnabled, label, deliveryCharge? }] }, labels: Express Settings | Scheduled Delivery | Self Pickup. Updates WarehouseDeliverySetting only. Consumer API uses same logic (Warehouse + Master fallback).\n- **Route Maps:** GET /route-maps (paginated), GET /route-maps/list (dropdown), GET/POST/PUT/DELETE /route-maps and /route-maps/:id. Area stored lowercase + trim.\n- **Scheduled Slots:** GET /slots (paginated), GET/POST/PUT/DELETE /slots and /slots/:id. Create/Update: startTime/endTime within warehouse opensAt/closesAt. Syncs to Consumer DeliverySlot. Delete: 409 if orders use slot.\n- **Route Pincodes:** POST /route-pincodes (routeMapId, pincodes 1–500), GET /route-pincodes?routeId=, DELETE /route-pincodes/:id. Test script saves createdIds[0] to routePincodeId.\n- **Pickup Slots:** POST /pickup-slots (date, startTime, endTime, capacity, repeat), GET /pickup-slots?fromDate=&toDate=, GET/PUT/DELETE /pickup-slots/:id. Saves ids[0] to pickupSlotId.\n- **Warehouse Blackouts:** POST /warehouse-blackouts (date, reason?), GET /warehouse-blackouts?fromDate=&toDate=, DELETE /warehouse-blackouts/:id. Saves id to blackoutId.\n- E2E: Create Route Map → Create Route Pincodes → Create Slot → Create Pickup Slot → Create Blackout → List/Update/Delete as needed.\n\n**Orders (by delivery type):**\n- List Partner Orders – All delivery types (FAST + SCHEDULED + PICKUP_STORE)\n- List Delivery Orders – FAST + SCHEDULED only\n- List Pickup Store Orders – PICKUP_STORE only\n- Get Delivery Agents, Get By ID, Accept, Reject, Update Status, Assign Agent. (Request Delivery OTP / Verify Delivery OTP have been removed as they are not implemented in the current codebase.)\n\n**Product Management (base: /api/v1/productmanagement/product):**\n- List, Get By ID, Create, Update, Get Pending, Update Status, Export Template, Upload Excel, Soft Delete, Ratings, Rating By ID.\n- **Added:** Import Master Product (POST /import/masterproduct), Get Units by Unit Type (GET /units/:unitTypeId), Get Unit Types (GET /unittypes), Get Brands List, Get Categories List, Get Subcategories List, Toggle Product Status (PATCH /toggle/:productId). All require Bearer token.\n\n**Variant Management (base: /api/v1/productmanagement/variant):**\n- Create, Get by Product ID, Get by ID, Update, **Delete (Disable)** (DELETE /delete/:id). All require Bearer token.\n\n**Setup:**\n1. Set baseUrl (default: http://localhost:3004), emailOrPhone (partner@example.com or 9876543210).\n2. Run \"1. Partner Auth\" → Login (email + password) to get accessToken.\n3. Collection Runner: tokens and IDs (accessToken, productId, variantId, orderId, routeMapId, slotId, routePincodeId, pickupSlotId, blackoutId, unitTypeId, ratingId) auto-saved.\n\n**Auth:** Login uses email+password or phone+password. OTP flows use emailOrPhone.\n\n**Last updated:** 2026-03 (Added Partner Categories folder: Get Active Categories, Add/Get/Update Warehouse Categories. Added Get Master Products and Get Master Product By ID. Collection variables: masterProductId, unitTypeId auto-save from Get Unit Types/Get Master Products. E2E folder renumbered to 10.)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3004"
+		},
+		{
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "refreshToken",
+			"value": ""
+		},
+		{
+			"key": "resetToken",
+			"value": ""
+		},
+		{
+			"key": "productId",
+			"value": ""
+		},
+		{
+			"key": "variantId",
+			"value": ""
+		},
+		{
+			"key": "warehouseId",
+			"value": ""
+		},
+		{
+			"key": "orderId",
+			"value": ""
+		},
+		{
+			"key": "emailOrPhone",
+			"value": "partner@example.com"
+		},
+		{
+			"key": "routeMapId",
+			"value": ""
+		},
+		{
+			"key": "slotId",
+			"value": ""
+		},
+		{
+			"key": "unitTypeId",
+			"value": ""
+		},
+		{
+			"key": "ratingId",
+			"value": ""
+		},
+		{
+			"key": "routePincodeId",
+			"value": ""
+		},
+		{
+			"key": "pickupSlotId",
+			"value": ""
+		},
+		{
+			"key": "blackoutId",
+			"value": ""
+		},
+		{
+			"key": "masterProductId",
+			"value": ""
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Skip auth for public endpoints",
+					"const publicPaths = ['/check', '/register', '/login', '/send-otp', '/verify-otp', '/resend-otp', '/refresh-token', '/forgot-password', '/verify-reset-otp', '/reset-password'];",
+					"const path = pm.request.url.getPath();",
+					"const isPublic = publicPaths.some(p => path.includes(p));",
+					"if (!isPublic && !pm.collectionVariables.get('accessToken')) {",
+					"    console.log('No accessToken - run Auth folder first or use Collection Runner');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// E2E Test Script - Extract tokens and IDs from responses",
+					"if (pm.response.code >= 200 && pm.response.code < 300) {",
+					"    try {",
+					"        const json = pm.response.json();",
+					"        const data = json.data || json;",
+					"        ",
+					"        // Extract accessToken",
+					"        if (data.accessToken) {",
+					"            pm.collectionVariables.set('accessToken', data.accessToken);",
+					"            console.log('accessToken saved');",
+					"        }",
+					"        ",
+					"        // Extract refreshToken",
+					"        if (data.refreshToken) {",
+					"            pm.collectionVariables.set('refreshToken', data.refreshToken);",
+					"            console.log('refreshToken saved');",
+					"        }",
+					"        // Extract resetToken (from Verify Reset OTP – Step 2)",
+					"        if (data.resetToken) {",
+					"            pm.collectionVariables.set('resetToken', data.resetToken);",
+					"            console.log('resetToken saved');",
+					"        }",
+					"        ",
+					"        // Extract productId from product response",
+					"        if (data.id && pm.request.url.getPath().includes('/products')) {",
+					"            pm.collectionVariables.set('productId', data.id);",
+					"            console.log('productId saved:', data.id);",
+					"        }",
+					"        if (data.product && data.product.id) {",
+					"            pm.collectionVariables.set('productId', data.product.id);",
+					"        }",
+					"        ",
+					"        // Extract variantId",
+					"        if (data.id && pm.request.url.getPath().includes('/variant')) {",
+					"            pm.collectionVariables.set('variantId', data.id);",
+					"        }",
+					"        ",
+					"        // Extract warehouseId from product",
+					"        if (data.warehouseId) {",
+					"            pm.collectionVariables.set('warehouseId', data.warehouseId);",
+					"        }",
+					"        // Extract orderId from orders list or get-by-id",
+					"        if (data.orders && data.orders[0] && data.orders[0].id) {",
+					"            pm.collectionVariables.set('orderId', data.orders[0].id);",
+					"            console.log('orderId saved:', data.orders[0].id);",
+					"        }",
+					"        if (data.id && pm.request.url.getPath().includes('/partner/orders/') && !pm.request.url.getPath().includes('/accept') && !pm.request.url.getPath().includes('/reject') && !pm.request.url.getPath().includes('/status')) {",
+					"            pm.collectionVariables.set('orderId', data.id);",
+					"        }",
+					"        // Extract routeMapId from route-maps create",
+					"        if (data.id && pm.request.url.getPath().includes('/delivery-settings/route-maps') && pm.request.method === 'POST') {",
+					"            pm.collectionVariables.set('routeMapId', data.id);",
+					"            console.log('routeMapId saved:', data.id);",
+					"        }",
+					"        // Extract slotId from slots create",
+					"        if (data.id && pm.request.url.getPath().includes('/delivery-settings/slots') && pm.request.method === 'POST') {",
+					"            pm.collectionVariables.set('slotId', data.id);",
+					"            console.log('slotId saved:', data.id);",
+					"        }",
+					"        // Extract routePincodeId from route-pincodes create (use first createdIds)",
+					"        if (data.createdIds && data.createdIds.length && pm.request.url.getPath().includes('/delivery-settings/route-pincodes') && pm.request.method === 'POST') {",
+					"            pm.collectionVariables.set('routePincodeId', data.createdIds[0]);",
+					"        }",
+					"        // Extract pickupSlotId from pickup-slots create (use first ids)",
+					"        if (data.ids && data.ids.length && pm.request.url.getPath().includes('/delivery-settings/pickup-slots') && pm.request.method === 'POST') {",
+					"            pm.collectionVariables.set('pickupSlotId', data.ids[0]);",
+					"        }",
+					"        // Extract blackoutId from warehouse-blackouts create",
+					"        if (data.id && pm.request.url.getPath().includes('/delivery-settings/warehouse-blackouts') && pm.request.method === 'POST') {",
+					"            pm.collectionVariables.set('blackoutId', data.id);",
+					"        }",
+					"        // Extract ratingId from ratings by id",
+					"        if (data.id && pm.request.url.getPath().includes('/ratings/')) {",
+					"            pm.collectionVariables.set('ratingId', data.id);",
+					"        }",
+					"        // Extract unitTypeId from unit types list (first item)",
+					"        if (data && Array.isArray(data) && data[0] && data[0].id && pm.request.url.getPath().includes('/product/unittypes')) {",
+					"            pm.collectionVariables.set('unitTypeId', data[0].id);",
+					"        }",
+					"        if (data && data.data && Array.isArray(data.data) && data.data[0] && data.data[0].id && pm.request.url.getPath().includes('/product/unittypes')) {",
+					"            pm.collectionVariables.set('unitTypeId', data.data[0].id);",
+					"        }",
+					"    } catch (e) {}",
+					"}",
+					"",
+					"pm.test('Status code is 2xx or 4xx', function () {",
+					"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204, 400, 401, 403, 404, 409, 422]);",
+					"});"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "0. Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+									"pm.test('Body has message and status', () => { const j = pm.response.json(); pm.expect(j).to.have.property('message'); pm.expect(j).to.have.property('status'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/check",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "check"]
+						},
+						"description": "**Use-case:** Verify API is running before running other requests.\n\n**Response:** 200 – { message: 'VillagKart-Partner API is running', status: 'success', timestamp, version }.\n\n**Tests:** Status 200; body has message and status."
+					}
+				}
+			]
+		},
+		{
+			"name": "1. Partner Auth",
+			"item": [
+				{
+					"name": "Register Partner",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\",\n  \"name\": \"Test Partner\",\n  \"email\": \"partner@example.com\",\n  \"password\": \"Test@123\",\n  \"avatar\": \"https://example.com/avatar.png\",\n  \"countryCode\": \"+91\",\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"line2\": \"Near Market\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400001\"\n  },\n  \"store\": {\n    \"name\": \"My Store\",\n    \"panNumber\": \"ABCDE1234F\"\n  },\n  \"supplier\": {\n    \"companyName\": \"My Supplier Co\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "register"]
+						},
+						"description": "Register a new partner. Returns user, store, supplier, accessToken, refreshToken."
+					}
+				},
+				{
+					"name": "Login (Email/Phone + Password)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"partner@example.com\",\n  \"password\": \"Test@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "login"]
+						},
+						"description": "Login with email OR phone + password. Provide either email or phone, not both."
+					}
+				},
+				{
+					"name": "Login (Phone + Password)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\",\n  \"password\": \"Test@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "login"]
+						},
+						"description": "Login with phone + password."
+					}
+				},
+				{
+					"name": "Send OTP (emailOrPhone)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "send-otp"]
+						},
+						"description": "Send OTP for login. Use emailOrPhone: email (e.g. partner@example.com) or phone (e.g. 9876543210 or +919876543210). Email → OTP via email; Phone → OTP via SMS. Legacy: { phone, countryCode } also supported."
+					}
+				},
+				{
+					"name": "Send OTP (Phone - legacy)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\",\n  \"countryCode\": \"+91\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "send-otp"]
+						},
+						"description": "Legacy format: Send OTP to phone. Backward compatible."
+					}
+				},
+				{
+					"name": "Verify OTP (emailOrPhone)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\",\n  \"otp\": \"123456\",\n  \"deviceId\": \"device-123\",\n  \"fcmToken\": \"fcm-token-optional\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "verify-otp"]
+						},
+						"description": "Verify OTP and get accessToken, refreshToken. Use same emailOrPhone as Send OTP. Legacy: { phone, otp } also supported."
+					}
+				},
+				{
+					"name": "Verify OTP (Phone - legacy)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"countryCode\": \"+91\",\n  \"deviceId\": \"device-123\",\n  \"fcmToken\": \"fcm-token-optional\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "verify-otp"]
+						},
+						"description": "Legacy format: Verify OTP with phone. Backward compatible."
+					}
+				},
+				{
+					"name": "Resend OTP (emailOrPhone)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/resend-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "resend-otp"]
+						},
+						"description": "Resend OTP. Use same emailOrPhone as Send OTP. Email → OTP via email; Phone → OTP via SMS. Legacy: { phone } also supported."
+					}
+				},
+				{
+					"name": "Resend OTP (Phone - legacy)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/resend-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "resend-otp"]
+						},
+						"description": "Legacy format: Resend OTP to phone. Backward compatible."
+					}
+				},
+				{
+					"name": "Create New Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"newPassword\": \"NewPass@123\",\n  \"confirmNewPassword\": \"NewPass@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/create-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "create-password"]
+						},
+						"description": "Set password for approved partner (first-time setup). Requires Bearer token."
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/refresh-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "refresh-token"]
+						},
+						"description": "Get new accessToken using refreshToken."
+					}
+				},
+				{
+					"name": "Forgot Password (emailOrPhone)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "forgot-password"]
+						},
+						"description": "Request OTP for password reset. Use emailOrPhone: email or phone. OTP sent via email or SMS accordingly. Legacy: { phone } also supported."
+					}
+				},
+				{
+					"name": "Forgot Password (Phone - legacy)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "forgot-password"]
+						},
+						"description": "Legacy format: Request OTP for password reset via phone. Backward compatible."
+					}
+				},
+				{
+					"name": "Verify Reset OTP – Step 2 (emailOrPhone)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.resetToken) pm.collectionVariables.set('resetToken', data.resetToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/verify-reset-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "verify-reset-otp"]
+						},
+						"description": "Step 2: Verify OTP received after Forgot Password. Returns resetToken (auto-saved for Step 3). Body: emailOrPhone, otp."
+					}
+				},
+				{
+					"name": "Reset Password – Step 3 (emailOrPhone)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"{{emailOrPhone}}\",\n  \"newPassword\": \"NewPass@123\",\n  \"confirmPassword\": \"NewPass@123\",\n  \"resetToken\": \"{{resetToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "reset-password"]
+						},
+						"description": "Step 3: Set new password using resetToken from Step 2. Backend validates token and passwords. Password is updated and token is invalidated. On success redirect to Login."
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "auth", "logout"]
+						},
+						"description": "Invalidate refresh token. Requires refreshToken in body."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Partner Store",
+			"item": [
+				{
+					"name": "Get Store Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/store/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "store", "profile"]
+						},
+						"description": "Get current partner's store profile. Requires Bearer token."
+					}
+				},
+				{
+					"name": "Create Store Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"My Partner Store\",\n  \"panNumber\": \"ABCDE1234F\",\n  \"logoUrl\": \"https://example.com/logo.png\",\n  \"nationalIdUrl\": \"https://example.com/national-id.pdf\",\n  \"addressProofUrl\": \"https://example.com/address-proof.pdf\",\n  \"description\": \"Premium grocery store\",\n  \"categoryIds\": [1, 2],\n  \"taxName\": \"GST\",\n  \"taxNumber\": \"27AABCU9603R1ZM\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/store",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "store"]
+						},
+						"description": "Create store profile. Requires Bearer token."
+					}
+				},
+				{
+					"name": "Update Store Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Store Name\",\n  \"description\": \"Updated description\",\n  \"logoUrl\": \"https://example.com/new-logo.png\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/store/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "store", "profile"]
+						},
+						"description": "Update store profile. All fields optional."
+					}
+				},
+				{
+					"name": "Get Store Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/store/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "store", "status"]
+						},
+						"description": "Get store approval/status."
+					}
+				},
+				{
+					"name": "Get Store Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/store/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "store", "documents"]
+						},
+						"description": "Get store document URLs."
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Partner Supplier",
+			"item": [
+				{
+					"name": "Get Supplier Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/supplier/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "supplier", "profile"]
+						},
+						"description": "Get current partner's supplier profile."
+					}
+				},
+				{
+					"name": "Create Supplier Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"ABC Suppliers Pvt Ltd\",\n  \"gstin\": \"27AABCU9603R1ZM\",\n  \"businessAddress\": {\n    \"line1\": \"456 Industrial Area\",\n    \"city\": \"Pune\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"411001\"\n  },\n  \"licenseDocs\": {},\n  \"operatingHours\": {},\n  \"deliveryOptions\": {}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/supplier",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "supplier"]
+						},
+						"description": "Create supplier profile. businessAddress must include line1, city, state, pincode."
+					}
+				},
+				{
+					"name": "Update Supplier Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Updated Company Name\",\n  \"businessAddress\": {\n    \"line1\": \"789 New Address\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400002\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/supplier/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "supplier", "profile"]
+						},
+						"description": "Update supplier profile."
+					}
+				},
+				{
+					"name": "Get Supplier Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/supplier/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "supplier", "documents"]
+						},
+						"description": "Get supplier document URLs."
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Partner Products",
+			"item": [
+				{
+					"name": "Get Partner Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"}
+							]
+						},
+						"description": "List partner's products with pagination."
+					}
+				},
+				{
+					"name": "Get Partner Product Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products", "stats"]
+						},
+						"description": "Get product statistics for partner."
+					}
+				},
+				{
+					"name": "Get Partner Low Stock Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products/low-stock",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products", "low-stock"]
+						},
+						"description": "Get products below stock threshold."
+					}
+				},
+				{
+					"name": "Get Partner Product By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('productId', data.id);",
+									"    if (data.warehouseId) pm.collectionVariables.set('warehouseId', data.warehouseId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products", "{{productId}}"]
+						},
+						"description": "Get single product by ID."
+					}
+				},
+				{
+					"name": "Create Partner Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    const product = data.product || data;",
+									"    if (product && product.id) pm.collectionVariables.set('productId', product.id);",
+									"    if (data.warehouseId) pm.collectionVariables.set('warehouseId', data.warehouseId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Organic Rice 1kg\",\n  \"price\": 150,\n  \"mrp\": 180,\n  \"category\": \"Grains\",\n  \"subCategory\": \"Rice\",\n  \"brand\": \"Organic Farm\",\n  \"unit\": \"kg\",\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"description\": \"Premium organic rice\",\n  \"images\": [\"https://example.com/rice.jpg\"],\n  \"stock\": 100,\n  \"threshold\": 10,\n  \"costPrice\": 120,\n  \"isActive\": true,\n  \"tags\": [\"organic\", \"rice\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products"]
+						},
+						"description": "Create new product. warehouseId is required (UUID). Get from store/warehouse."
+					}
+				},
+				{
+					"name": "Update Partner Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Organic Rice 1kg - Updated\",\n  \"price\": 145,\n  \"stock\": 150,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products", "{{productId}}"]
+						},
+						"description": "Update product. All fields optional."
+					}
+				},
+				{
+					"name": "Delete Partner Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "products", "{{productId}}"]
+						},
+						"description": "Delete product by ID."
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Partner Orders",
+			"item": [
+				{
+					"name": "List Partner Orders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.orders && data.orders[0] && data.orders[0].id) pm.collectionVariables.set('orderId', data.orders[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "status", "value": "", "disabled": true},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "deliveryType", "value": "", "description": "Optional: scheduled | express | fast", "disabled": true},
+								{"key": "routeMapId", "value": "", "description": "Optional; only when deliveryType=scheduled", "disabled": true},
+								{"key": "cartType", "value": "", "description": "Optional: single (individual) | group (Group/Shared Cart)", "disabled": true}
+							]
+						},
+						"description": "List ALL orders (all delivery types: FAST + SCHEDULED + PICKUP_STORE) assigned to partner's warehouse. Query: page, limit, status, search. Optional: deliveryType, routeMapId (when deliveryType=scheduled), cartType (single | group)."
+					}
+				},
+				{
+					"name": "List Delivery Orders (FAST + SCHEDULED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.orders && data.orders[0] && data.orders[0].id) pm.collectionVariables.set('orderId', data.orders[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/delivery?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "delivery"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "status", "value": "", "disabled": true},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "deliveryType", "value": "scheduled", "description": "scheduled | express | fast. When scheduled, use routeMapId to filter by route.", "disabled": true},
+								{"key": "routeMapId", "value": "{{routeMapId}}", "description": "Only when deliveryType=scheduled. Filter orders by delivery route (from route-maps/list).", "disabled": true},
+								{"key": "cartType", "value": "", "description": "Optional: single | group (Cart Type filter)", "disabled": true}
+							]
+						},
+						"description": "List orders with delivery types FAST or SCHEDULED only (excludes PICKUP_STORE). Query: page, limit, status, search. Optional: deliveryType (scheduled | express | fast), routeMapId (when scheduled), cartType (single | group). Route options from GET /partner/delivery-settings/route-maps/list."
+					}
+				},
+				{
+					"name": "List Pickup Store Orders (PICKUP_STORE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.orders && data.orders[0] && data.orders[0].id) pm.collectionVariables.set('orderId', data.orders[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/pickup-store?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "pickup-store"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "status", "value": "", "disabled": true},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "cartType", "value": "", "description": "Optional: single | group (Cart Type filter)", "disabled": true}
+							]
+						},
+						"description": "List orders with delivery type PICKUP_STORE only. Query: page, limit, status, search. Optional: cartType (single | group)."
+					}
+				},
+				{
+					"name": "Get Delivery Agents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/delivery-agents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "delivery-agents"]
+						},
+						"description": "Partner/warehouse fetches list of delivery agents (for assigning orders). Returns active DELIVERY_AGENT users scoped to partner's warehouse or unassigned (warehouseId null). Fields: id, name, phone, email, isOnline, vehicleType, avatar."
+					}
+				},
+				{
+					"name": "Get Partner Order By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('orderId', data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/{{orderId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "{{orderId}}"]
+						},
+						"description": "Get order details by orderId (UUID). Requires order to belong to partner's warehouse."
+					}
+				},
+				{
+					"name": "Accept Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/{{orderId}}/accept",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "{{orderId}}", "accept"]
+						},
+						"description": "Accept PENDING order (moves to CONFIRMED). No body required."
+					}
+				},
+				{
+					"name": "Reject Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Out of stock\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/{{orderId}}/reject",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "{{orderId}}", "reject"]
+						},
+						"description": "Reject PENDING order (moves to CANCELLED). Optional body: { \"reason\": \"string\" }."
+					}
+				},
+				{
+					"name": "Update Order Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PROCESSING\",\n  \"reason\": \"Started preparation\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/{{orderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "{{orderId}}", "status"]
+						},
+						"description": "Update order status. status: CONFIRMED | PROCESSING | READY_FOR_PICKUP | CANCELLED. Optional reason."
+					}
+				},
+				{
+					"name": "Assign Order to Delivery Agent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"agentId\": \"<delivery-agent-user-uuid>\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/orders/{{orderId}}/assign-agent",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "orders", "{{orderId}}", "assign-agent"]
+						},
+						"description": "Assign order to a delivery partner (READY_FOR_PICKUP → ASSIGNED_TO_AGENT). Body: { agentId: UUID } (User with role DELIVERY_AGENT)."
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Partner Delivery Settings",
+			"item": [
+				{
+					"name": "Get Delivery Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings"]
+						},
+						"description": "Get partner's delivery settings. Response: warehouse (id, name, servicePincodes, opensAt, closesAt, pickupTimeSlots, isPickupStore), deliveryChargeRules, deliverySlots, vendor (selfPickupMode, requireProductApproval), deliveryTypes (expressSettingsEnabled, selfPickupEnabled, scheduledDeliveryEnabled, defaultDeliveryCharge, scheduledDeliveryCharge). deliveryTypes are merged from MasterDeliverySetting + WarehouseDeliverySetting (warehouse overrides when present)."
+					}
+				},
+				{
+					"name": "Update Delivery Settings",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"servicePincodes\": [\"400001\", \"400002\", \"500001\"],\n  \"opensAt\": \"09:00\",\n  \"closesAt\": \"21:00\",\n  \"pickupTimeSlots\": [\"09:00-12:00\", \"14:00-18:00\"],\n  \"isPickupStore\": true,\n  \"selfPickupMode\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings"]
+						},
+						"description": "Update delivery settings. Body (all optional): servicePincodes (array), opensAt, closesAt (e.g. 09:00, 21:00), pickupTimeSlots (array or null), isPickupStore (boolean), selfPickupMode (boolean). At least one field required."
+					}
+				},
+				{
+					"name": "Get Delivery Types",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/types",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "types"]
+						},
+						"description": "Get delivery type toggles. Defaults from MasterDeliverySetting when no WarehouseDeliverySetting; otherwise warehouse overrides apply. Response: deliverySettings array (isEnabled, label, deliveryCharge) for Express Settings, Scheduled Delivery, Self Pickup; defaultDeliveryCharge (from first type or 30)."
+					}
+				},
+				{
+					"name": "Update Delivery Types",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deliverySettings\": [\n    { \"isEnabled\": true, \"label\": \"Express Settings\", \"deliveryCharge\": 30 },\n    { \"isEnabled\": true, \"label\": \"Scheduled Delivery\", \"deliveryCharge\": 30 },\n    { \"isEnabled\": false, \"label\": \"Self Pickup\", \"deliveryCharge\": 0 }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/types",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "types"]
+						},
+						"description": "Update delivery type toggles. Body: deliverySettings (required) — array of { isEnabled (boolean), label (Express Settings | Scheduled Delivery | Self Pickup), deliveryCharge or defaultDeliveryCharge (optional, non-negative)."
+					}
+				},
+				{
+					"name": "List Route Maps",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps?page=1&limit=10&search=&sortBy=area&sortOrder=asc",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": ""},
+								{"key": "sortBy", "value": "area"},
+								{"key": "sortOrder", "value": "asc"}
+							]
+						},
+						"description": "List route maps (scheduled delivery areas) with pagination. Query: page (default 1), limit (default 10, max 100), search (matches area), sortBy (area|createdAt), sortOrder (asc|desc). Response includes pagination."
+					}
+				},
+				{
+					"name": "Get Route Map Options",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps", "list"]
+						},
+						"description": "Get route map options for dropdowns (id, area). No pagination. Use returned id as routeMapId when creating delivery slots."
+					}
+				},
+				{
+					"name": "Create Route Map",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('routeMapId', data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"area\": \"Madhapur\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps"]
+						},
+						"description": "Create route map (delivery area). Body: area (required, string, max 255). Area is stored as lowercase + trim. Returns id, area, createdAt. Test script saves routeMapId for slot creation. 409 if area duplicate (case-insensitive)."
+					}
+				},
+				{
+					"name": "Get Route Map By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps/{{routeMapId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps", "{{routeMapId}}"]
+						},
+						"description": "Get single route map by ID (UUID). Path: :id. Uses {{routeMapId}}."
+					}
+				},
+				{
+					"name": "Update Route Map",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"area\": \"Madhapur - Updated\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps/{{routeMapId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps", "{{routeMapId}}"]
+						},
+						"description": "Update route map by ID. Body: area (optional, non-empty string, max 255). Area stored lowercase + trim. 409 if area duplicate (case-insensitive)."
+					}
+				},
+				{
+					"name": "Delete Route Map",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-maps/{{routeMapId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-maps", "{{routeMapId}}"]
+						},
+						"description": "Delete route map by ID. 404 if not found or not owned by partner's warehouse."
+					}
+				},
+				{
+					"name": "List Delivery Slots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/slots?page=1&limit=10&search=&sortBy=slotDate&sortOrder=asc",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "slots"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": ""},
+								{"key": "sortBy", "value": "slotDate"},
+								{"key": "sortOrder", "value": "asc"}
+							]
+						},
+						"description": "List scheduled delivery slots with pagination. Query: page, limit (max 100), search (route area, startTime, endTime), sortBy (slotDate|createdAt|ordersPerSlot|startTime), sortOrder (asc|desc). Response includes routeArea, repeatLabel."
+					}
+				},
+				{
+					"name": "Create Delivery Slot",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('slotId', data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"slotDate\": \"2026-02-15\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:00\",\n  \"routeMapId\": \"{{routeMapId}}\",\n  \"ordersPerSlot\": 5,\n  \"isRepeat\": true,\n  \"repeatType\": \"MON_FRI\",\n  \"customDays\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/slots",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "slots"]
+						},
+						"description": "Create scheduled delivery slot. Body: slotDate (required, YYYY-MM-DD), startTime, endTime (required, HH:mm), routeMapId (required, UUID), ordersPerSlot (required, int ≥ 1). Optional: isRepeat, repeatType (ONCE|DAILY|WEEKLY|MON_FRI|SUN|CUSTOM), customDays. Validation: startTime/endTime must be within warehouse opensAt/closesAt (400 if outside). Slot is synced to Consumer DeliverySlot (key startTime-endTime, capacity = ordersPerSlot). Test script saves slotId."
+					}
+				},
+				{
+					"name": "Get Delivery Slot By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/slots/{{slotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "slots", "{{slotId}}"]
+						},
+						"description": "Get single delivery slot by ID (UUID). Uses {{slotId}}. Response includes routeMap, routeArea, repeatLabel."
+					}
+				},
+				{
+					"name": "Update Delivery Slot",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"slotDate\": \"2026-02-16\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"routeMapId\": \"{{routeMapId}}\",\n  \"ordersPerSlot\": 8,\n  \"isRepeat\": true,\n  \"repeatType\": \"DAILY\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/slots/{{slotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "slots", "{{slotId}}"]
+						},
+						"description": "Update delivery slot by ID. Body (all optional): slotDate, startTime, endTime, routeMapId, ordersPerSlot (≥ 1), isRepeat, repeatType, customDays. Validation: if warehouse has opensAt/closesAt, slot time must be within that window (400 otherwise). Synced to Consumer DeliverySlot."
+					}
+				},
+				{
+					"name": "Delete Delivery Slot",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/slots/{{slotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "slots", "{{slotId}}"]
+						},
+						"description": "Delete delivery slot by ID. 404 if not found or not owned by partner's warehouse. 409 if any orders use this slot (same warehouse, date, slot key startTime-endTime); complete or cancel those orders first."
+					}
+				},
+				{
+					"name": "Create Route Pincodes",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"routeMapId\": \"{{routeMapId}}\",\n  \"pincodes\": [\"500001\", \"500002\", \"500003\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-pincodes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-pincodes"]
+						},
+						"description": "Bulk attach pincodes to a route. Body: routeMapId (required, UUID), pincodes (required, array of 1–500 non-empty strings). Duplicates for same route are skipped. Response: created, skipped, createdIds; test script saves first createdIds to routePincodeId. 409 if route not found or not owned by warehouse."
+					}
+				},
+				{
+					"name": "List Route Pincodes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-pincodes?routeId={{routeMapId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-pincodes"],
+							"query": [{ "key": "routeId", "value": "{{routeMapId}}", "description": "Optional; filter by route" }]
+						},
+						"description": "List route pincodes for partner's warehouse. Query: routeId (optional). Returns rows with id, routeMapId, pincode, createdAt."
+					}
+				},
+				{
+					"name": "Delete Route Pincode",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/route-pincodes/{{routePincodeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "route-pincodes", "{{routePincodeId}}"]
+						},
+						"description": "Delete a single route pincode by ID. Uses {{routePincodeId}} (from Create Route Pincodes response createdIds). 404 if not found."
+					}
+				},
+				{
+					"name": "Create Pickup Slot",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"date\": \"2026-04-01\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"12:00\",\n  \"slot\": \"Morning\",\n  \"capacity\": 10,\n  \"repeat\": false,\n  \"repeatType\": \"ONCE\",\n  \"customDays\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/pickup-slots",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "pickup-slots"]
+						},
+						"description": "Create pickup slot(s). Body: date (required, YYYY-MM-DD), startTime, endTime (required, HH:mm), slot (optional), capacity (optional, 1–1000), repeat, repeatType (ONCE|DAILY|WEEKLY|MON_FRI|SUN|CUSTOM), customDays. With repeat=true creates multiple rows. Validates overlap. Response: created, ids; test script saves ids[0] to pickupSlotId. 409 if slot time overlaps."
+					}
+				},
+				{
+					"name": "List Pickup Slots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/pickup-slots?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "pickup-slots"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "10" },
+								{ "key": "fromDate", "value": "", "description": "Optional, YYYY-MM-DD", "disabled": true },
+								{ "key": "toDate", "value": "", "description": "Optional, YYYY-MM-DD", "disabled": true }
+							]
+						},
+						"description": "List pickup slots for partner's warehouse with pagination. Required: page, limit. Optional: fromDate, toDate (date-range filter). Response includes data array and pagination (page, limit, total, totalPages, hasNext, hasPrev)."
+					}
+				},
+				{
+					"name": "Get Pickup Slot By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/pickup-slots/{{pickupSlotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "pickup-slots", "{{pickupSlotId}}"]
+						},
+						"description": "Get single pickup slot by ID. Uses {{pickupSlotId}}. 404 if not found or not owned by warehouse."
+					}
+				},
+				{
+					"name": "Update Pickup Slot",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"capacity\": 15,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/pickup-slots/{{pickupSlotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "pickup-slots", "{{pickupSlotId}}"]
+						},
+						"description": "Update pickup slot by ID. Body (all optional): date, startTime, endTime, slot, capacity (cannot be less than current booked), repeat, repeatType, customDays, isActive. 400 if capacity < booked or overlap; 404 if not found."
+					}
+				},
+				{
+					"name": "Delete Pickup Slot",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/pickup-slots/{{pickupSlotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "pickup-slots", "{{pickupSlotId}}"]
+						},
+						"description": "Delete pickup slot by ID. If slot has bookings (booked > 0), soft-deactivates (isActive: false); otherwise deletes. 404 if not found."
+					}
+				},
+				{
+					"name": "Create Warehouse Blackout",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"date\": \"2026-12-25\",\n  \"reason\": \"Christmas\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/warehouse-blackouts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "warehouse-blackouts"]
+						},
+						"description": "Add blackout date for warehouse. Body: date (required, YYYY-MM-DD), reason (optional, max 255 chars). Response includes id; test script saves to blackoutId. 409 if blackout already exists for this date."
+					}
+				},
+				{
+					"name": "List Warehouse Blackouts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/warehouse-blackouts?fromDate=2026-01-01&toDate=2026-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "warehouse-blackouts"],
+							"query": [
+								{ "key": "fromDate", "value": "2026-01-01", "description": "Optional, YYYY-MM-DD" },
+								{ "key": "toDate", "value": "2026-12-31", "description": "Optional, YYYY-MM-DD" }
+							]
+						},
+						"description": "List blackout dates for partner's warehouse. Query: fromDate, toDate (optional). Used by consumer API to hide blackout dates and filter pickup/scheduled slots."
+					}
+				},
+				{
+					"name": "Delete Warehouse Blackout",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/delivery-settings/warehouse-blackouts/{{blackoutId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "delivery-settings", "warehouse-blackouts", "{{blackoutId}}"]
+						},
+						"description": "Delete blackout by ID. Uses {{blackoutId}} (from Create Warehouse Blackout response). 404 if not found."
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Product Management",
+			"item": [
+				{
+					"name": "Get Product List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"}
+							]
+						},
+						"description": "Get product list with filters and pagination. Requires Bearer token. Query: page, limit. Expected: 200 (success), 401 (unauthorized)."
+					}
+				},
+				{
+					"name": "Import Master Product to Warehouse",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"masterProductIds\": [\"<master-product-uuid-1>\", \"<master-product-uuid-2>\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/import/masterproduct",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "import", "masterproduct"]
+						},
+						"description": "Import master products into partner warehouse. Body: masterProductIds (required, array of UUIDs). Creates products in partner's warehouse from master catalog. Expected: 200 (success), 400 (invalid/missing masterProductIds), 401."
+					}
+				},
+				{
+					"name": "Get Master Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/masterproducts?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "masterproducts"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "categoryId", "value": "", "disabled": true},
+								{"key": "isActive", "value": "true", "disabled": true}
+							]
+						},
+						"description": "**Use-case:** List master catalog products for import into warehouse (e.g. before calling Import Master Product).\n\n**Response:** 200 – paginated list of MasterProduct. Query: page, limit, search, categoryId, isActive.\n\n**Tests:** Status 200; body has data (array or paginated object)."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) { const j = pm.response.json(); const d = j.data || j; if (d && d.length && d[0].id) pm.collectionVariables.set('masterProductId', d[0].id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Master Product By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/masterproducts/{{masterProductId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "masterproducts", "{{masterProductId}}"]
+						},
+						"description": "**Use-case:** Get single master product details by ID (e.g. before importing or for display).\n\n**Response:** 200 – { success, data: MasterProduct, message }. 404 if not found.\n\n**Tests:** Status 200 or 404. Set collection variable masterProductId from Get Master Products or use a known UUID."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200 or 404', () => pm.expect(pm.response.code).to.be.oneOf([200, 404]));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Units by Unit Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/units/{{unitTypeId}}?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "units", "{{unitTypeId}}"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "status", "value": "", "disabled": true}
+							]
+						},
+						"description": "Get units for a unit type. Path: unitTypeId (required). Query: page, limit, search, status. Expected: 200, 400 (missing unitTypeId), 401."
+					}
+				},
+				{
+					"name": "Get Unit Types",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/unittypes?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "unittypes"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "status", "value": "", "disabled": true}
+							]
+						},
+						"description": "Get unit types list. Query: page, limit, search, status. Expected: 200, 401."
+					}
+				},
+				{
+					"name": "Get Brands List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/brands/list?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "brands", "list"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "isActive", "value": "", "disabled": true},
+								{"key": "sortBy", "value": "priority"},
+								{"key": "order", "value": "asc"}
+							]
+						},
+						"description": "Get brands for dropdowns/filters. Query: page, limit, search, isActive (true|false), sortBy (priority), order (asc|desc). Expected: 200, 401."
+					}
+				},
+				{
+					"name": "Get Categories List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/categories/list?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "categories", "list"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "isActive", "value": "", "disabled": true},
+								{"key": "sortBy", "value": "displayOrder"},
+								{"key": "order", "value": "asc"}
+							]
+						},
+						"description": "Get categories list. Query: page, limit, search, isActive, sortBy (displayOrder), order. Expected: 200, 401."
+					}
+				},
+				{
+					"name": "Get Subcategories List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/subcategories/list?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "subcategories", "list"],
+							"query": [
+								{"key": "page", "value": "1"},
+								{"key": "limit", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "categoryId", "value": "", "disabled": true},
+								{"key": "isActive", "value": "", "disabled": true},
+								{"key": "sortBy", "value": "displayOrder"},
+								{"key": "order", "value": "asc"}
+							]
+						},
+						"description": "Get subcategories list. Query: page, limit, search, categoryId, isActive, sortBy, order. Expected: 200, 401."
+					}
+				},
+				{
+					"name": "Toggle Product Status",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/toggle/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "toggle", "{{productId}}"]
+						},
+						"description": "Toggle product isActive (true ↔ false). Path: productId (UUID). No body. Expected: 200 (returns updated product with isActive), 404 (product not found), 401."
+					}
+				},
+				{
+					"name": "Get Product By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('productId', data.id);",
+									"    if (data.warehouseId) pm.collectionVariables.set('warehouseId', data.warehouseId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "{{productId}}"]
+						},
+						"description": "Get single product by productId."
+					}
+				},
+				{
+					"name": "Create Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('productId', data.id);",
+									"    if (data.warehouseId) pm.collectionVariables.set('warehouseId', data.warehouseId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Premium Wheat Flour 500g\",\n  \"price\": 80,\n  \"mrp\": 95,\n  \"category\": \"Grains\",\n  \"subCategory\": \"Flour\",\n  \"unit\": \"g\",\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"description\": \"Fine wheat flour\",\n  \"images\": [\"https://example.com/flour.jpg\"],\n  \"stock\": 200,\n  \"threshold\": 20,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product"]
+						},
+						"description": "Create product. warehouseId required (UUID)."
+					}
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 85,\n  \"stock\": 250,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "{{productId}}"]
+						},
+						"description": "Update product."
+					}
+				},
+				{
+					"name": "Get Pending Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/pending/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "pending", "list"]
+						},
+						"description": "Get products pending approval."
+					}
+				},
+				{
+					"name": "Update Product Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"APPROVED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/{{productId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "{{productId}}", "status"]
+						},
+						"description": "Update product status. status: APPROVED | REJECTED"
+					}
+				},
+				{
+					"name": "Export Product Template",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/export/template",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "export", "template"]
+						},
+						"description": "Download Excel template for bulk product upload."
+					}
+				},
+				{
+					"name": "Upload Products (Excel)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/upload/excel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "upload", "excel"]
+						},
+						"description": "Bulk upload products via Excel. Use form-data with key 'file'."
+					}
+				},
+				{
+					"name": "Soft Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/{{productId}}/delete",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "{{productId}}", "delete"]
+						},
+						"description": "Soft delete product."
+					}
+				},
+				{
+					"name": "Get Product Ratings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/ratings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "ratings"]
+						},
+						"description": "Get all product ratings."
+					}
+				},
+				{
+					"name": "Get Rating By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('ratingId', data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/product/ratings/{{ratingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "product", "ratings", "{{ratingId}}"]
+						},
+						"description": "Get rating by ID. Path: ratingId. Expected: 200, 404, 401."
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Variant Management",
+			"item": [
+				{
+					"name": "Create Variant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const data = json.data || json;",
+									"    if (data.id) pm.collectionVariables.set('variantId', data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": \"{{productId}}\",\n  \"sku\": \"RICE-1KG-001\",\n  \"variantName\": \"1kg Pack\",\n  \"unitType\": \"kg\",\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"landingPrice\": 120,\n  \"mrp\": 150,\n  \"sellingPrice\": 140,\n  \"stockQuantity\": 100,\n  \"minOrderQty\": 1,\n  \"maxOrderQty\": 10,\n  \"lowStockThreshold\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/variant",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "variant"]
+						},
+						"description": "Create product variant. productId, sku, variantName, unitType, landingPrice required."
+					}
+				},
+				{
+					"name": "Get Variants By Product ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/variant/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "variant", "product", "{{productId}}"]
+						},
+						"description": "Get all variants for a product."
+					}
+				},
+				{
+					"name": "Get Variant By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/variant/{{variantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "variant", "{{variantId}}"]
+						},
+						"description": "Get single variant by ID."
+					}
+				},
+				{
+					"name": "Update Variant",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku\": \"RICE-1KG-002\",\n  \"variantName\": \"1kg Pack - Updated\",\n  \"landingPrice\": 125,\n  \"stockQuantity\": 150\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/variant/{{variantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "variant", "{{variantId}}"]
+						},
+						"description": "Update variant. Path: variantId (UUID). Body (optional): sku, variantName, unitType, landingPrice, stockQuantity. Expected: 200, 404, 401."
+					}
+				},
+				{
+					"name": "Delete (Disable) Variant",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/productmanagement/variant/delete/{{variantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "productmanagement", "variant", "delete", "{{variantId}}"]
+						},
+						"description": "Disable/delete variant by ID. Path: variantId (UUID). Endpoint: DELETE /variant/delete/:id. Expected: 200/204 (success), 404 (variant not found), 401."
+					}
+				}
+			]
+		},
+		{
+			"name": "9. Partner Categories",
+			"item": [
+				{
+					"name": "Get Active Categories with Subcategories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/categories/catandsubcat",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "categories", "catandsubcat"]
+						},
+						"description": "**Use-case:** Fetch all active categories with their active subcategories for dropdowns/forms (e.g. when adding warehouse categories).\n\n**Response:** 200 – { success, data: [{ id, name, description, image, displayOrder, slug, subCategories: [{ id, name, ... }] }], message }. Used to get categoryId and subCategoryIds for Add/Update Warehouse Categories.\n\n**Tests:** Status 200; body has data array."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+									"pm.test('Response has data array', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Add Warehouse Categories",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categories\": [\n    {\n      \"categoryId\": \"<category-uuid-from-catandsubcat>\",\n      \"subCategoryIds\": [\"<subcategory-uuid-1>\", \"<subcategory-uuid-2>\"]\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/categories/catandsubcat/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "categories", "catandsubcat", "add"]
+						},
+						"description": "**Use-case:** Enable categories and subcategories for the partner's warehouse (assortment). Run after Get Active Categories to get categoryId and subCategoryIds.\n\n**Request:** Body: { categories: [{ categoryId (UUID), subCategoryIds (optional array of UUIDs) }] }. Warehouse is derived from authenticated user.\n\n**Response:** 201 – { success, data: [WarehouseCategory], message }. 400 if warehouse not assigned or categories missing.\n\n**Tests:** Status 201 or 400."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 2xx or 4xx', () => pm.expect(pm.response.code).to.be.oneOf([201, 400, 401, 403]));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Partner Warehouse Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/categories/warehouse/catandsubcat",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "categories", "warehouse", "catandsubcat"]
+						},
+						"description": "**Use-case:** List categories and subcategories currently enabled for the partner's warehouse (for display or edit).\n\n**Response:** 200 – { success, data: [{ id, categoryId, categoryName, image, icon, subCategories: [{ id, name, image }] }], message }. 400 if warehouse not assigned.\n\n**Tests:** Status 200; body has data array."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+									"pm.test('Response has data array', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Warehouse Categories",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categories\": [\n    {\n      \"categoryId\": \"<category-uuid>\",\n      \"subCategoryIds\": [\"<subcategory-uuid-1>\", \"<subcategory-uuid-2>\"]\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/partner/categories/warehouse/catandsubcat",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "partner", "categories", "warehouse", "catandsubcat"]
+						},
+						"description": "**Use-case:** Replace warehouse category-subcategory mapping. Removes subcategories not in subCategoryIds; adds new ones. Same body shape as Add.\n\n**Request:** Body: { categories: [{ categoryId, subCategoryIds (optional array) }] }.\n\n**Response:** 200 – { success, data: null, message }. 400 if categories missing or warehouse not assigned.\n\n**Tests:** Status 200 or 400."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 2xx or 4xx', () => pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403]));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "10. E2E Test Flow",
+			"item": [
+				{
+					"name": "Run Full E2E Flow",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/check",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "check"]
+						},
+						"description": "**Run all Partner APIs at once (E2E):**\n\n1. Postman → Click the collection → **Run** (Collection Runner)\n2. Select environment: VillagKart Partner - Local\n3. Select all folders (or leave default to run all)\n4. Click **Run VillagKart Partner API** — all requests execute in order; tokens and IDs auto-save\n5. Order: Health → Auth (Login/Verify OTP or Register) → Store → Supplier → Products → Orders → Delivery Settings → Product Management → Variant → Partner Categories → Logout. Password reset: Forgot Password → Verify Reset OTP (saves resetToken) → Reset Password\n6. Pre-requisites: Valid partner account; set emailOrPhone for OTP; warehouseId for product creation. Optional: run Get Unit Types first to auto-fill unitTypeId for Get Units by Unit Type; run Get Master Products to fill masterProductId.\n7. Test script: Status 2xx/4xx validated; accessToken, refreshToken, resetToken, productId, variantId, orderId, warehouseId, routeMapId, slotId, routePincodeId, pickupSlotId, blackoutId, ratingId, unitTypeId, masterProductId extracted for subsequent requests."
+					}
+				}
+			]
+		}
+	]
+}

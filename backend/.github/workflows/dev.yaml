@@ -1,0 +1,55 @@
+name: Partner API Deploy
+
+on:
+  push:
+    branches:
+      - erp/dev
+
+concurrency:
+  group: Partner-api-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Partner API
+        uses: appleboy/ssh-action@v1.2.0
+
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+
+          script: |
+            set -e
+
+            export PATH=$PATH:/home/ubuntu/n/bin
+
+            cd /opt/apps/villagkart/erp-dev/partner_api
+
+            echo "Updating repository..."
+
+            git checkout erp/dev
+            git pull origin erp/dev
+            git reset --hard erp/dev
+
+            echo "Installing dependencies..."
+
+            npm install
+
+            echo "Generating Prisma client..."
+
+            npx prisma generate
+
+            echo "Running database migrations..."
+
+            npx prisma migrate deploy
+
+            echo "Restarting PM2 application..."
+
+            pm2 restart partner-api
+            pm2 save
+
+            echo "Partner API deployment completed successfully."

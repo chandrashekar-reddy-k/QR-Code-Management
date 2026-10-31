@@ -1,0 +1,55 @@
+name: Partner API Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: Partner-api-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Partner API
+        uses: appleboy/ssh-action@v1.2.0
+
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+
+          script: |
+            set -e
+
+            # export PATH=$PATH:/home/ubuntu/n/bin
+
+            cd /home/ubuntu/partner_api
+
+            echo "Updating repository..."
+
+            git checkout master
+            git pull origin master
+            git reset --hard master
+
+            echo "Installing dependencies..."
+
+            npm install
+
+            echo "Generating Prisma client..."
+
+            npx prisma generate
+
+            echo "Running database migrations..."
+
+            npx prisma migrate deploy
+
+            echo "Restarting PM2 application..."
+
+            pm2 restart partner-api
+            pm2 save
+
+            echo "Partner API deployment completed successfully."

@@ -2,19 +2,24 @@
   "name": "villagkart-qr-studio",
   "private": true,
   "version": "1.0.0",
-  "description": "VillagKart QR Studio — Centralized QR Creation, Distribution & Analytics (ERP Enterprise Module)",
+  "description": "VillagKart QR Studio & Partner Web Monorepo",
   "type": "module",
+  "workspaces": [
+    "scannerFrontend",
+    "villagkart-partner-web"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "lucide-react": "^1.61.0",
-    "qrcode": "^1.5.4",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "dev": "npm --prefix scannerFrontend run dev",
+    "build": "npm --prefix scannerFrontend run build",
+    "lint": "npm --prefix scannerFrontend run lint",
+    "preview": "npm --prefix scannerFrontend run preview",
+    "scanner:dev": "npm --prefix scannerFrontend run dev",
+    "scanner:build": "npm --prefix scannerFrontend run build",
+    "partner:dev": "npm --prefix villagkart-partner-web run dev",
+    "partner:build": "npm --prefix villagkart-partner-web run build",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:start": "npm --prefix backend run start",
+    "backend:install": "npm --prefix backend install"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

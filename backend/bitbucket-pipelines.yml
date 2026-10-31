@@ -1,0 +1,20 @@
+image: atlassian/default-image:3
+ 
+pipelines:
+  branches:
+    dev:
+      - step:
+          name: Deploy Partner API (DEV)
+          script:
+            - apt-get update && apt-get install -y openssh-client
+            - ssh -o StrictHostKeyChecking=no ubuntu@3.7.204.189 "/var/www/villagkart-partner-api/deploy.sh"
+ 
+    master:
+      - step:
+          name: Deploy Partner API (PROD)
+          deployment: production
+          script:
+            - apt-get update && apt-get install -y openssh-client
+            - mkdir -p ~/.ssh
+            - ssh-keyscan -H 65.1.24.179 >> ~/.ssh/known_hosts
+            - ssh ubuntu@65.1.24.179 "/usr/local/bin/deploy-partner.sh"

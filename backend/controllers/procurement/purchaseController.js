@@ -1,0 +1,948 @@
+import { Prisma } from '@prisma/client';
+import prisma from '../../utils/prisma.js';
+import { getTenantId } from '../../utils/tenantContext.js';
+import { generateId } from '../../utils/idGenerator.js';
+import { logActivity } from '../../utils/activityLogger.js';
+import { resolveStoreScopeFromReq, resolveWriteStoreId } from '../../utils/resolveStoreScope.js';
+// Removed duplicate prisma import
+
+// ─── CREATE PURCHASE INVOICE ─────────────────────────────────────
+export const createPurchase = async (req, res) => {
+  try {
+    const tenantId = req.user?.tenantId || getTenantId();
+    const { vendorId, poId, grnId, invoiceNumber, invoiceDate, dueDate, items, transportCharges, otherCharges } = req.body;
+
+    if (!vendorId || !invoiceNumber) {
+      return res.status(400).json({ message: 'Vendor and invoice number are required' });
+    }
+
+    if (!grnId) {
+      return res.status(400).json({ message: 'Rule 1: Purchase Invoice cannot be created without a Goods Receipt Note (GRN).' });
+    }
+    //test
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'At least one item is required' });
+    }
+
+    // Validate vendor is active
+    const vendor = await prisma.vendor.findUnique({ where: { id: vendorId } });
+    if (!vendor || vendor.status !== 'ACTIVE') {
+      return res.status(400).json({ message: 'Vendor is inactive or not found' });
+    }
+
+    // CONTROL: GST validation
+    if (vendor.isTaxable && !vendor.gstNumber) {
+      return res.status(400).json({ message: `Vendor "${vendor.vendorName}" is marked as Taxable, but is missing a valid GSTIN. Please update the vendor profile.` });
+    }
+
+    // CONTROL: Invoice duplication check
+    const existingInvoice = await prisma.purchaseInvoice.findFirst({
+      where: {  invoiceNumber }
+    });
+    if (existingInvoice) {
+      return res.status(409).json({ message: 'Duplicate invoice number. An invoice with this number already exists.' });
+    }
+
+    // CONTROL: GRN dependency and Quantity limit checks
+    let poIdToUse = null;
+    const grn = await prisma.procurementGoodsReceipt.findUnique({
+      where: { id: grnId },
+      include: { items: { include: { product: true } } }
+    });
+
+    if (!grn) {
+      return res.status(404).json({ message: 'Selected Goods Receipt Note (GRN) not found.' });
+    }
+
+    // Accept APPROVED items; fall back to all non-REJECTED items if QC hasn't been performed yet
+    const approvedItems = grn.items.filter(i => i.qcStatus === 'APPROVED');
+    const eligibleItems = approvedItems.length > 0
+      ? approvedItems
+      : grn.items.filter(i => i.qcStatus !== 'REJECTED');
+
+    if (eligibleItems.length === 0) {
+      return res.status(400).json({ message: 'Selected GRN has no eligible items (all items have been rejected in QC).' });
+    }
+
+    // Verify quantities do not exceed GRN received amounts
+    for (const item of items) {
+      const grnItem = eligibleItems.find(gi => gi.productId === item.productId);
+      if (!grnItem) {
+        return res.status(400).json({ message: `Product ID ${item.productId} is not found in the selected GRN's eligible items.` });
+      }
+      if (parseInt(item.quantity) > grnItem.receivedQty) {
+        return res.status(400).json({ message: `Invoiced quantity (${item.quantity}) for "${grnItem.product?.name}" exceeds the GRN received quantity (${grnItem.receivedQty}).` });
+      }
+    }
+
+    poIdToUse = grn.poId;
+    const rawStoreId = req.body.storeId || req.user?.storeId || req.user?.warehouseId || null;
+    const storeId = await resolveWriteStoreId(rawStoreId);
+    const transport = parseFloat(transportCharges) || 0;
+    const other = parseFloat(otherCharges) || 0;
+    const itemsTotal = items.reduce((sum, item) => {
+      const lineTotal = item.total !== undefined && item.total !== null ? parseFloat(item.total) : (parseInt(item.quantity) * parseFloat(item.price));
+      return sum + (isNaN(lineTotal) ? 0 : lineTotal);
+    }, 0);
+    const totalAmount = itemsTotal + transport + other;
+
+    const invoice = await prisma.$transaction(async (tx) => {
+      const displayId = await generateId({
+        entity: 'PINV',
+                storeId
+      });
+
+      // 1. Create the Invoice and Items
+      const inv = await tx.purchaseInvoice.create({
+        data: {
+                    storeId,
+          displayId,
+          vendorId,
+          poId: poIdToUse || null,
+          grnId: grnId || null,
+          invoiceNumber,
+          invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+          dueDate: dueDate ? new Date(dueDate) : null,
+          transportCharges: transport,
+          otherCharges: other,
+          totalAmount,
+          status: 'CONFIRMED',
+          items: {
+            create: items.map(item => ({
+                            productId: item.productId,
+              quantity: parseInt(item.quantity),
+              price: parseFloat(item.price), // Line Total / Net Total for this item
+              unitCostBeforeDiscount: parseFloat(item.unitCostBeforeDiscount) || 0,
+              discountPercent: parseFloat(item.discountPercent) || 0,
+              unitCostBeforeTax: parseFloat(item.unitCostBeforeTax) || 0,
+              subtotalBeforeTax: parseFloat(item.subtotalBeforeTax) || 0,
+              taxType: item.taxType || 'NONE',
+              taxPercent: parseFloat(item.taxPercent) || 0,
+              netCost: parseFloat(item.netCost) || 0,
+              profitMargin: parseFloat(item.profitMargin) || 0,
+              unitSellingPrice: parseFloat(item.unitSellingPrice) || 0,
+              mfgDate: item.mfgDate ? new Date(item.mfgDate) : null,
+              expDate: item.expDate ? new Date(item.expDate) : null,
+              total: parseFloat(item.total) || (parseInt(item.quantity) * parseFloat(item.price))
+            }))
+          }
+        }
+      });
+
+      // 2. High-Performance Bulk Stock Updates
+      // Deduplicate items for stock processing
+      const stockMap = new Map();
+      for (const item of items) {
+        const q = parseInt(item.quantity);
+        if (q <= 0) continue;
+        stockMap.set(item.productId, (stockMap.get(item.productId) || 0) + q);
+      }
+
+      const entries = Array.from(stockMap.entries());
+      if (entries.length > 0) {
+        let warehouse = await tx.warehouse.findFirst({ where: { isActive: true } });
+        if (!warehouse) {
+          warehouse = await tx.warehouse.create({
+            data: {  name: 'Main Warehouse', location: 'Default' }
+          });
+        }
+
+        // A. Update Product Master Stock and Prices
+        for (const [pId, qty] of entries) {
+          const item = items.find(i => i.productId === pId);
+          const itemPrice = item?.price ? parseFloat(item.price) : 0;
+          const sellingPrice = item?.unitSellingPrice ? parseFloat(item.unitSellingPrice) : 0;
+
+          const updateData = {
+            stock: { increment: qty }
+          };
+          if (itemPrice > 0) updateData.costPrice = itemPrice;
+          if (sellingPrice > 0) updateData.price = sellingPrice;
+
+          await tx.product.update({
+            where: { id: pId },
+            data: updateData
+          });
+        }
+
+        // B. Update Unified Inventory
+        let location = await tx.inventoryLocation.findFirst({ where: { warehouseId: warehouse.id } });
+        if (!location) {
+          location = await tx.inventoryLocation.findFirst();
+        }
+
+        if (location) {
+          for (const [pId, qty] of entries) {
+            const existing = await tx.unifiedInventory.findFirst({
+              where: {
+                productId: pId,
+                productVariantId: null,
+                locationId: location.id
+              }
+            });
+            if (existing) {
+              await tx.unifiedInventory.update({
+                where: { id: existing.id },
+                data: {
+                  onHand: { increment: qty },
+                  available: { increment: qty }
+                }
+              });
+            } else {
+              await tx.unifiedInventory.create({
+                data: {
+                  productId: pId,
+                  productVariantId: null,
+                  locationId: location.id,
+                  onHand: qty,
+                  available: qty
+                }
+              });
+            }
+          }
+        }
+
+        // C. Bulk Create Stock Ledger Entries
+        // We fetch current balances after update for accurate ledger
+        const currentUIs = location ? await tx.unifiedInventory.findMany({
+          where: { locationId: location.id, productId: { in: entries.map(e => e[0]) } }
+        }) : [];
+        const currentUIMap = new Map(currentUIs.map(ui => [ui.productId, ui.onHand]));
+
+        await tx.procurementStockLedger.createMany({
+          data: entries.map(([pId, qty]) => ({
+            storeId,
+            productId: pId,
+            type: 'PURCHASE',
+            quantity: qty,
+            reference: inv.id,
+            refType: 'INVOICE',
+            balanceAfter: currentUIMap.get(pId) || qty
+          }))
+        });
+      }
+
+      // 3. Vendor Ledger and Balance
+      const currentVendor = await tx.vendor.findUnique({ where: { id: vendorId } });
+      const newBalance = (currentVendor?.currentBalance || 0) + totalAmount;
+
+      await tx.vendorLedger.create({
+        data: {
+                    storeId,
+          vendorId,
+          type: 'PURCHASE',
+          debit: totalAmount,
+          balance: newBalance,
+          reference: inv.id,
+          description: `Purchase Invoice #${invoiceNumber}`
+        }
+      });
+
+      await tx.vendor.update({
+        where: { id: vendorId },
+        data: { currentBalance: newBalance }
+      });
+
+      // 3b. Automatically create a pending/unpaid VendorPayment record for Payment Tracking
+      const paymentDisplayId = await generateId({
+        entity: 'PAY',
+        storeId
+      });
+
+      await tx.vendorPayment.create({
+        data: {
+          storeId,
+          displayId: paymentDisplayId,
+          vendorId,
+          amount: 0,
+          mode: 'CASH',
+          paymentDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+          isAdvance: false,
+          remarks: 'Auto-created pending payment for Purchase Invoice',
+          invoiceId: inv.id
+        }
+      });
+
+      if (poId) {
+        await tx.purchaseOrder.update({
+          where: { id: poId },
+          data: { status: 'CLOSED' }
+        });
+      }
+
+      // 4. Update Vendor Item Mappings (Last Purchase Rate)
+      for (const item of items) {
+        const itemPrice = parseFloat(item.price) || 0;
+        await tx.vendorItemMapping.upsert({
+          where: {
+            vendorId_productId: { vendorId, productId: item.productId }
+          },
+          update: {
+            lastPurchaseRate: itemPrice
+          },
+          create: {
+                        storeId,
+            vendorId,
+            productId: item.productId,
+            purchasePrice: itemPrice,
+            lastPurchaseRate: itemPrice,
+            isPreferred: false
+          }
+        });
+      }
+
+      return inv;
+    }, {
+      maxWait: 40000,
+      timeout: 120000
+    });
+
+    logActivity({
+      userId: req.user?.id || null,
+      storeId: storeId || req.user?.storeId || null,
+      action: 'PURCHASE_INVOICE_CREATED',
+      details: `Created Purchase Invoice #${invoiceNumber} for vendor ${vendor.vendorName}. Total: ₹${totalAmount.toFixed(2)}`,
+      metadata: { invoiceId: invoice.id, vendorId, totalAmount }
+    });
+
+    res.status(201).json({ message: 'Purchase Invoice created successfully', invoice });
+  } catch (error) {
+    console.error('❌ Create Purchase Error:', error);
+    res.status(500).json({ message: 'Error creating purchase invoice', error: error.message });
+  }
+};
+
+// ─── GET PURCHASES ─────────────────────────────────────
+export const getPurchases = async (req, res) => {
+  try {
+    const { vendorId, status, storeId } = req.query;
+    const where = {  };
+
+    if (vendorId) where.vendorId = vendorId;
+    if (status) where.status = status;
+    
+    const storeScope = await resolveStoreScopeFromReq(req);
+    Object.assign(where, storeScope);
+
+    const purchases = await prisma.purchaseInvoice.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        vendor: { select: { vendorName: true, mobile: true } },
+        po: { select: { displayId: true } },
+        items: {
+          include: { product: { select: { name: true } } }
+        },
+        _count: { select: { paymentAllocations: true } }
+      }
+    });
+
+    res.json(purchases);
+  } catch (error) {
+    console.error('FETCH PURCHASES ERROR:', error);
+    res.status(500).json({ message: 'Error fetching purchases', error: error.message });
+  }
+};
+
+// ─── GET PRODUCT PURCHASE DATES (FOR LABELS / PACKING) ─────────
+export const getProductPurchaseDates = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { sku, sourceProductId, workOrderId } = req.query;
+
+    const candidateIds = new Set();
+    if (productId && productId !== 'undefined' && productId !== 'null' && productId !== 'all') {
+      candidateIds.add(productId);
+    }
+    if (sourceProductId && sourceProductId !== 'undefined' && sourceProductId !== 'null') {
+      candidateIds.add(sourceProductId);
+    }
+
+    // If workOrderId is provided, also check sourceItems and productId on the work order
+    if (workOrderId && workOrderId !== 'undefined') {
+      const wo = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        select: { productId: true, sourceItems: true, recipeId: true }
+      });
+      if (wo) {
+        if (wo.productId) candidateIds.add(wo.productId);
+        let sItems = wo.sourceItems;
+        if (typeof sItems === 'string') {
+          try { sItems = JSON.parse(sItems); } catch (e) {}
+        }
+        if (Array.isArray(sItems)) {
+          sItems.forEach((item) => {
+            if (item.id) candidateIds.add(item.id);
+            if (item.productId) candidateIds.add(item.productId);
+            if (item.sourceProductId) candidateIds.add(item.sourceProductId);
+          });
+        }
+      }
+    }
+
+    // If sku is provided, search for product IDs matching this SKU
+    if (sku && sku !== '—' && sku !== 'undefined' && sku !== 'null') {
+      const prods = await prisma.product.findMany({
+        where: { sku },
+        select: { id: true }
+      });
+      prods.forEach((p) => candidateIds.add(p.id));
+    }
+
+    const idsArray = Array.from(candidateIds);
+    if (idsArray.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: 'No product ID specified'
+      });
+    }
+
+    // 1. First attempt: search for purchase item with explicit mfgDate, expDate, or selling price / MRP populated
+    let purchaseItem = await prisma.purchaseInvoiceItem.findFirst({
+      where: {
+        productId: { in: idsArray },
+        OR: [
+          { mfgDate: { not: null } },
+          { expDate: { not: null } },
+          { unitSellingPrice: { gt: 0 } }
+        ]
+      },
+      orderBy: {
+        invoice: { invoiceDate: 'desc' }
+      },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            invoiceDate: true,
+            displayId: true,
+            createdAt: true
+          }
+        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            mrp: true,
+            price: true
+          }
+        }
+      }
+    });
+
+    // 2. Second attempt: fallback to latest purchase invoice item for this product
+    if (!purchaseItem) {
+      purchaseItem = await prisma.purchaseInvoiceItem.findFirst({
+        where: {
+          productId: { in: idsArray }
+        },
+        orderBy: {
+          invoice: { invoiceDate: 'desc' }
+        },
+        include: {
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              invoiceDate: true,
+              displayId: true,
+              createdAt: true
+            }
+          },
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              mrp: true,
+              price: true
+            }
+          }
+        }
+      });
+    }
+
+    if (!purchaseItem) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: 'No purchase records found in procurement'
+      });
+    }
+
+    const effectiveMrp =
+      (purchaseItem.product?.mrp && Number(purchaseItem.product.mrp) > 0)
+        ? Number(purchaseItem.product.mrp)
+        : (purchaseItem.unitSellingPrice && Number(purchaseItem.unitSellingPrice) > 0)
+        ? Number(purchaseItem.unitSellingPrice)
+        : (purchaseItem.product?.price && Number(purchaseItem.product.price) > 0)
+        ? Number(purchaseItem.product.price)
+        : null;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        productId: purchaseItem.productId,
+        productName: purchaseItem.product?.name,
+        productSku: purchaseItem.product?.sku,
+        mfgDate: purchaseItem.mfgDate ? purchaseItem.mfgDate.toISOString().split('T')[0] : null,
+        expDate: purchaseItem.expDate ? purchaseItem.expDate.toISOString().split('T')[0] : null,
+        invoiceNumber: purchaseItem.invoice?.invoiceNumber,
+        invoiceDisplayId: purchaseItem.invoice?.displayId,
+        invoiceDate: purchaseItem.invoice?.invoiceDate ? purchaseItem.invoice.invoiceDate.toISOString().split('T')[0] : null,
+        price: purchaseItem.price,
+        unitSellingPrice: purchaseItem.unitSellingPrice,
+        mrp: effectiveMrp
+      }
+    });
+  } catch (error) {
+    console.error('Error in getProductPurchaseDates:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product purchase dates',
+      error: error.message
+    });
+  }
+};
+
+// ─── GET PURCHASE BY ID ─────────────────────────────────────
+export const getPurchaseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const purchase = await prisma.purchaseInvoice.findUnique({
+      where: { id },
+      include: {
+        vendor: true,
+        po: { select: { displayId: true } },
+        items: {
+          include: { product: true }
+        },
+        paymentAllocations: {
+          include: { payment: true }
+        }
+      }
+    });
+
+    if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
+    res.json(purchase);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching purchase', error: error.message });
+  }
+};
+
+// ─── UPDATE PURCHASE INVOICE ─────────────────────────────────────
+export const updatePurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { vendorId, poId, invoiceNumber, invoiceDate, transportCharges, otherCharges, remarks, items } = req.body;
+
+    const existing = await prisma.purchaseInvoice.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Purchase invoice not found' });
+
+    // Financial fields update
+    const parsedDate = invoiceDate ? new Date(invoiceDate) : null;
+    const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+
+    const newTransport = transportCharges !== undefined ? (parseFloat(transportCharges) || 0) : existing.transportCharges;
+    const newOther = otherCharges !== undefined ? (parseFloat(otherCharges) || 0) : existing.otherCharges;
+
+    // Recalculate totalAmount from items
+    const itemsTotal = items ? items.reduce((sum, item) => {
+      const lineTotal = item.total !== undefined && item.total !== null ? parseFloat(item.total) : ((parseInt(item.quantity) || 0) * (parseFloat(item.price) || 0));
+      return sum + (isNaN(lineTotal) ? 0 : lineTotal);
+    }, 0) :
+      (existing.totalAmount - existing.transportCharges - existing.otherCharges);
+    const newTotal = itemsTotal + newTransport + newOther;
+    const diff = newTotal - existing.totalAmount;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Handle Item Updates & Stock Adjustments
+      if (items) {
+        const oldItems = await tx.purchaseInvoiceItem.findMany({ where: { invoiceId: id } });
+        const warehouse = await tx.warehouse.findFirst();
+        if (!warehouse) throw new Error('Warehouse not found');
+
+        // Calculate Net Stock Changes (Deltas)
+        const netChanges = new Map();
+        oldItems.forEach(i => {
+          netChanges.set(i.productId, (netChanges.get(i.productId) || 0) - i.quantity);
+        });
+        items.forEach(i => {
+          const qty = parseInt(i.quantity) || 0;
+          netChanges.set(i.productId, (netChanges.get(i.productId) || 0) + qty);
+        });
+
+        const entries = Array.from(netChanges.entries()).filter(([_, qty]) => qty !== 0);
+        if (entries.length > 0) {
+          // A. Bulk Update Product Master Stock
+          const productValues = entries.map(([pId, qty]) => Prisma.sql`(${pId}, ${qty}::int)`);
+          await tx.$executeRaw`
+            UPDATE "Product"
+            SET stock = "Product".stock + v.qty
+            FROM (VALUES ${Prisma.join(productValues)}) AS v(id, qty)
+            WHERE "Product".id = v.id
+          `;
+
+          // B. Update Unified Inventory
+          let location = await tx.inventoryLocation.findFirst({ where: { warehouseId: warehouse.id } });
+          if (!location) {
+            location = await tx.inventoryLocation.findFirst();
+          }
+
+          if (location) {
+            for (const [pId, qty] of entries) {
+              const existingUI = await tx.unifiedInventory.findFirst({
+                where: {
+                  productId: pId,
+                  productVariantId: null,
+                  locationId: location.id
+                }
+              });
+              if (existingUI) {
+                await tx.unifiedInventory.update({
+                  where: { id: existingUI.id },
+                  data: {
+                    onHand: { increment: qty },
+                    available: { increment: qty }
+                  }
+                });
+              } else {
+                await tx.unifiedInventory.create({
+                  data: {
+                    productId: pId,
+                    productVariantId: null,
+                    locationId: location.id,
+                    onHand: qty,
+                    available: qty
+                  }
+                });
+              }
+            }
+          }
+
+          // C. Record in Procurement Stock Ledger
+          const currentUIs = location ? await tx.unifiedInventory.findMany({
+            where: { locationId: location.id, productId: { in: entries.map(e => e[0]) } }
+          }) : [];
+          const currentUIMap = new Map(currentUIs.map(ui => [ui.productId, ui.onHand]));
+
+          await tx.procurementStockLedger.createMany({
+            data: entries.map(([pId, qty]) => ({
+              storeId: existing.storeId,
+              productId: pId,
+              type: 'ADJUSTMENT',
+              quantity: qty,
+              reference: id,
+              refType: 'INVOICE_UPDATE',
+              balanceAfter: currentUIMap.get(pId) || 0
+            }))
+          });
+        }
+
+        // Replace old items with new ones
+        await tx.purchaseInvoiceItem.deleteMany({ where: { invoiceId: id } });
+        await tx.purchaseInvoiceItem.createMany({
+          data: items.map(item => ({
+            invoiceId: id,
+            productId: item.productId,
+            quantity: parseInt(item.quantity) || 0,
+            price: parseFloat(item.price) || 0,
+            unitCostBeforeDiscount: parseFloat(item.unitCostBeforeDiscount) || 0,
+            discountPercent: parseFloat(item.discountPercent) || 0,
+            unitCostBeforeTax: parseFloat(item.unitCostBeforeTax) || 0,
+            subtotalBeforeTax: parseFloat(item.subtotalBeforeTax) || 0,
+            taxType: item.taxType || 'NONE',
+            taxPercent: parseFloat(item.taxPercent) || 0,
+            netCost: parseFloat(item.netCost) || 0,
+            profitMargin: parseFloat(item.profitMargin) || 0,
+            unitSellingPrice: parseFloat(item.unitSellingPrice) || 0,
+            mfgDate: item.mfgDate ? new Date(item.mfgDate) : null,
+            expDate: item.expDate ? new Date(item.expDate) : null,
+            total: parseFloat(item.total) || ((parseInt(item.quantity) || 0) * (parseFloat(item.price) || 0))
+          }))
+        });
+
+        // D. Update Product Master Prices (even if quantity didn't change)
+        if (items && items.length > 0) {
+          const productPriceValues = items.map(item => {
+            const itemPrice = parseFloat(item.price) || 0;
+            const sellingPrice = parseFloat(item.unitSellingPrice) || 0;
+            return Prisma.sql`(${item.productId}, ${itemPrice}::float, ${sellingPrice}::float)`;
+          });
+
+          await tx.$executeRaw`
+            UPDATE "Product"
+            SET 
+              "costPrice" = v.l_price,
+              "price" = CASE WHEN v.s_price > 0 THEN v.s_price ELSE "Product".price END
+            FROM (VALUES ${Prisma.join(productPriceValues)}) AS v(id, l_price, s_price)
+            WHERE "Product".id = v.id
+          `;
+        }
+
+        // Update Vendor Item Mappings (Last Purchase Rate)
+        for (const item of items) {
+          const itemPrice = parseFloat(item.price) || 0;
+          await tx.vendorItemMapping.upsert({
+            where: {
+              vendorId_productId: { vendorId: vendorId || existing.vendorId, productId: item.productId }
+            },
+            update: {
+              lastPurchaseRate: itemPrice
+            },
+            create: {
+              storeId: existing.storeId,
+              vendorId: vendorId || existing.vendorId,
+              productId: item.productId,
+              purchasePrice: itemPrice,
+              lastPurchaseRate: itemPrice,
+              isPreferred: false
+            }
+          });
+        }
+      }
+
+      // 2. Update Invoice Metadata
+      const inv = await tx.purchaseInvoice.update({
+        where: { id },
+        data: {
+          vendorId: vendorId || existing.vendorId,
+          poId: poId !== undefined ? poId : existing.poId,
+          invoiceNumber: invoiceNumber || existing.invoiceNumber,
+          invoiceDate: isValidDate ? parsedDate : existing.invoiceDate,
+          transportCharges: newTransport,
+          otherCharges: newOther,
+          totalAmount: newTotal
+        }
+      });
+
+      // 3. Update Vendor Balance & Ledger if total changed
+      if (diff !== 0) {
+        await tx.vendor.update({
+          where: { id: existing.vendorId },
+          data: { currentBalance: { increment: diff } }
+        });
+
+        const ledgerEntries = await tx.vendorLedger.findMany({
+          where: { reference: id, type: 'PURCHASE' }
+        });
+
+        for (const entry of ledgerEntries) {
+          await tx.vendorLedger.update({
+            where: { id: entry.id },
+            data: {
+              debit: newTotal,
+              balance: { increment: diff }
+            }
+          });
+        }
+      }
+
+      return inv;
+    }, {
+      maxWait: 60000,
+      timeout: 300000
+    });
+
+    logActivity({
+      userId: req.user.id,
+      
+      action: 'PURCHASE_UPDATED',
+      details: `Updated Purchase Invoice #${updated.invoiceNumber}. New Total: ₹${updated.totalAmount}`,
+      metadata: { invoiceId: id, diff }
+    });
+
+    res.json({ message: 'Purchase invoice updated', invoice: updated });
+  } catch (error) {
+    import('fs').then(fs => fs.appendFileSync('error.log', '\nUPDATE ERROR: ' + error.stack + '\n'));
+    console.error('❌ Update Purchase Critical Error:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ message: 'Invoice number already exists for this tenant' });
+    }
+    res.status(500).json({ message: 'Error updating purchase', error: error.message });
+  }
+};
+
+// ─── DELETE PURCHASE INVOICE ─────────────────────────────────────
+export const deletePurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+
+    const invoice = await prisma.purchaseInvoice.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        _count: { select: { paymentAllocations: true } }
+      }
+    });
+
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    if (invoice._count.paymentAllocations > 0) {
+      return res.status(400).json({ message: 'Cannot delete invoice with associated payments. Remove payments first.' });
+    }
+
+    const totalAmount = invoice.totalAmount;
+    const vendorId = invoice.vendorId;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. High-Performance Bulk Stock Reversal
+      const items = invoice.items;
+      if (items.length > 0) {
+        const productValues = items.map(item => Prisma.sql`(${item.productId}, ${item.quantity}::int)`);
+
+        // A. Bulk Decrement Product Master Stock
+        await tx.$executeRaw`
+          UPDATE "Product"
+          SET stock = "Product".stock - v.qty
+          FROM (VALUES ${Prisma.join(productValues)}) AS v(id, qty)
+          WHERE "Product".id = v.id
+        `;
+
+        // B. Decrement Unified Inventory
+        let warehouse = await tx.warehouse.findFirst({ where: { isActive: true } });
+        if (!warehouse) {
+          warehouse = await tx.warehouse.create({
+            data: {  name: 'Main Warehouse', location: 'Default' }
+          });
+        }
+
+        let location = await tx.inventoryLocation.findFirst({ where: { warehouseId: warehouse.id } });
+        if (!location) {
+          location = await tx.inventoryLocation.findFirst();
+        }
+
+        if (location) {
+          for (const item of items) {
+            const existingUI = await tx.unifiedInventory.findFirst({
+              where: {
+                productId: item.productId,
+                productVariantId: null,
+                locationId: location.id
+              }
+            });
+            if (existingUI) {
+              await tx.unifiedInventory.update({
+                where: { id: existingUI.id },
+                data: {
+                  onHand: { decrement: item.quantity },
+                  available: { decrement: item.quantity }
+                }
+              });
+            }
+          }
+        }
+
+        // C. Bulk Create Stock Ledger Entries (Adjustment for deletion)
+        // Fetch current balances after update for accurate ledger
+        const currentUIs = location ? await tx.unifiedInventory.findMany({
+          where: { locationId: location.id, productId: { in: items.map(i => i.productId) } }
+        }) : [];
+        const currentUIMap = new Map(currentUIs.map(ui => [ui.productId, ui.onHand]));
+
+        await tx.procurementStockLedger.createMany({
+          data: items.map(item => ({
+                        storeId: invoice.storeId,
+            productId: item.productId,
+            type: 'ADJUSTMENT',
+            quantity: -item.quantity,
+            reference: invoice.id,
+            refType: 'INVOICE_DELETE',
+            balanceAfter: currentUIMap.get(item.productId) || 0
+          }))
+        });
+      }
+
+      // 2. Revert Vendor Balance
+      await tx.vendor.update({
+        where: { id: vendorId },
+        data: { currentBalance: { decrement: totalAmount } }
+      });
+
+      // 3. Delete Ledger Entry
+      await tx.vendorLedger.deleteMany({
+        where: { reference: id, type: 'PURCHASE' }
+      });
+
+      // 4. Delete Invoice Items
+      await tx.purchaseInvoiceItem.deleteMany({ where: { invoiceId: id } });
+
+      // 5. Delete Invoice
+      await tx.purchaseInvoice.delete({ where: { id } });
+
+      // 6. Cleanup Orphan Products (Safe Cleanup)
+      // We only delete products that have NO other links anywhere in the system
+      for (const item of items) {
+        try {
+          const productActivity = await tx.product.findUnique({
+            where: { id: item.productId },
+            include: {
+              _count: {
+                select: {
+                  PurchaseInvoiceItem: true,
+                  orderItems: true,
+                  sales: true,
+                  returnItems: true,
+                  damageEntries: true,
+                  PurchaseOrderItem: true,
+                  ProcurementGoodsReceiptItem: true,
+                  GoodsReceiptItem: true,
+                  cycleCountItems: true,
+                  variants: true,
+                  refillRequestItems: true,
+                  VendorItemMapping: true
+                }
+              }
+            }
+          });
+
+          if (productActivity &&
+            (productActivity._count?.PurchaseInvoiceItem || 0) === 0 &&
+            (productActivity._count?.orderItems || 0) === 0 &&
+            (productActivity._count?.sales || 0) === 0 &&
+            (productActivity._count?.returnItems || 0) === 0 &&
+            (productActivity._count?.damageEntries || 0) === 0 &&
+            (productActivity._count?.PurchaseOrderItem || 0) === 0 &&
+            (productActivity._count?.ProcurementGoodsReceiptItem || 0) === 0 &&
+            (productActivity._count?.GoodsReceiptItem || 0) === 0 &&
+            (productActivity._count?.cycleCountItems || 0) === 0 &&
+            (productActivity._count?.variants || 0) === 0 &&
+            (productActivity._count?.refillRequestItems || 0) === 0 &&
+            (productActivity._count?.VendorItemMapping || 0) === 0) {
+
+            // Product is truly an orphan with zero history
+            await tx.unifiedInventory.deleteMany({ where: { productId: item.productId } });
+            await tx.vehicleStock.deleteMany({ where: { productId: item.productId } });
+            await tx.procurementStockLedger.deleteMany({ where: { productId: item.productId } });
+            await tx.stockTransaction.deleteMany({ where: { productId: item.productId } });
+            await tx.cartItem.deleteMany({ where: { productId: item.productId } });
+
+            await tx.product.delete({ where: { id: item.productId } });
+          }
+        } catch (err) {
+          console.warn(`[Cleanup] Failed to cleanup potential orphan product ${item.productId}:`, err.message);
+          // Don't throw, just skip this product cleanup to ensure invoice deletion finishes
+        }
+      }
+    }, {
+      maxWait: 30000,
+      timeout: 90000
+    });
+
+    logActivity({
+      userId: req.user.id,
+      
+      action: 'PURCHASE_INVOICE_DELETED',
+      details: `Deleted Purchase Invoice #${invoice.invoiceNumber}. Total: ₹${invoice.totalAmount}`,
+      metadata: { invoiceId: id }
+    });
+
+    res.json({ message: 'Purchase invoice deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete Purchase Error:', error);
+    res.status(500).json({ message: 'Error deleting purchase invoice', error: error.message });
+  }
+};

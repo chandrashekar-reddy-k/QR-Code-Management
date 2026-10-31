@@ -1,0 +1,5 @@
+{
+  "watch": ["server.js", "controllers", "routes", "services", "utils", "middlewares", "config", "audit", "validations", "constants"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "logs", "*.log", "prisma/client", "**/client/*", "* 2.js", "**/* 2.js", "nodemon*.json"]
+}
