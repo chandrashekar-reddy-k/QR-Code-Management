@@ -253,6 +253,120 @@ router.get("/qr", async (req, res) => {
   }
 });
 
+// 2a. Fetch Audit Events (MUST be defined before /qr/:id)
+router.get(["/qr/audit", "/audit"], async (req, res) => {
+  const store = readStore();
+  return res.json({ success: true, data: store.auditLogs || [] });
+});
+
+// 2b. Record Audit Event
+router.post(["/qr/audit", "/audit"], async (req, res) => {
+  const body = req.body || {};
+  const store = readStore();
+  const eventId = body.id || `AUD-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const auditEntry = {
+    id: eventId,
+    timestamp: body.timestamp || new Date().toISOString().replace("T", " ").substring(0, 19),
+    user: body.user || "Admin User",
+    role: body.role || "Admin",
+    action: body.action || "System Event",
+    reference: body.reference || "QR System",
+    entityId: body.entityId || "",
+    entityName: body.entityName || "",
+    versionDiff: body.versionDiff || "State modification",
+    decision: body.decision || "Executed",
+    outcome: body.outcome || "Success",
+    metadata: body.metadata || {},
+  };
+
+  store.auditLogs = [auditEntry, ...(store.auditLogs || [])];
+  writeStore(store);
+
+  return res.status(201).json({ success: true, data: auditEntry });
+});
+
+// 2c. Get Scan Events (MUST be defined before /qr/:id)
+router.get(["/qr/scans", "/scans"], async (req, res) => {
+  try {
+    const dbScans = await prisma.qRScanEvent.findMany({
+      include: { qrCode: true },
+      orderBy: { scannedAt: "desc" },
+    });
+    if (dbScans && dbScans.length > 0) {
+      const formatted = dbScans.map((s) => {
+        const info = s.deviceInfoJson || {};
+        const qrDesign = typeof s.qrCode?.designJson === "object" ? s.qrCode.designJson : {};
+        const purpose = `${qrDesign.purpose || ""} ${s.qrCode?.purpose || ""} ${s.qrCode?.name || ""}`.toLowerCase();
+        let defaultSource = "Direct Print / Flyer";
+        if (/vehicle|van|vinyl/i.test(purpose)) defaultSource = "Vehicle Vinyl Sticker";
+        else if (/product|label/i.test(purpose)) defaultSource = "Product Label";
+        else if (/hub|banner|facade/i.test(purpose)) defaultSource = "Hub Facade Banner";
+        else if (/poster|reatchall/i.test(purpose)) defaultSource = "Direct Print / Poster";
+
+        return {
+          id: s.id,
+          qrId: s.qrCodeId,
+          qrName: s.qrCode?.name || info.qrName || "VillagKart QR",
+          campaign: qrDesign.campaign || info.campaign || "Direct Routing",
+          timestamp: s.scannedAt.toISOString().replace("T", " ").substring(0, 19),
+          device: info.device || "Desktop",
+          source: info.source || defaultSource,
+          medium: info.medium || "QR Scan Event",
+          hub: info.hub || s.qrCode?.warehouse?.name || "Phirangipuram Warehouse",
+          village: info.village || qrDesign.village || "Phirangipuram Village",
+          outcome: s.conversionTriggered ? "Conversion Attributed" : (info.outcome || "Redirected"),
+          conversion: info.conversion || (s.conversionTriggered ? "Verified Registration" : "None (Direct Scan)"),
+          ipCountry: info.ipCountry || "India (Andhra Pradesh)",
+          durationMs: info.durationMs || 185,
+        };
+      });
+      return res.json({ success: true, data: formatted });
+    }
+  } catch (err) {
+    console.warn("[QRStudio] DB query error on scans:", err.message);
+  }
+
+  const store = readStore();
+  return res.json({ success: true, data: store.scanEvents || [] });
+});
+
+// 2d. Record Scan Event
+router.post(["/qr/scans", "/scans"], async (req, res) => {
+  const body = req.body || {};
+  const eventId = `scan_${Date.now()}`;
+
+  try {
+    if (body.qrId) {
+      const qrExists = await prisma.qRCode.findUnique({ where: { id: body.qrId } });
+      if (qrExists) {
+        await prisma.qRScanEvent.create({
+          data: {
+            id: eventId,
+            qrCodeId: body.qrId,
+            deviceInfoJson: body,
+            conversionTriggered: Boolean(body.triggerConversion),
+          },
+        });
+        console.log(`[QRStudio] Successfully recorded scan event for QR ${body.qrId} in DB.`);
+      }
+    }
+  } catch (err) {
+    console.warn(`[QRStudio] Error saving scan to DB:`, err.message);
+  }
+
+  const store = readStore();
+  const event = {
+    id: eventId,
+    timestamp: new Date().toISOString().replace("T", " ").substring(0, 19),
+    ...body,
+  };
+  store.scanEvents = [event, ...(store.scanEvents || [])];
+  writeStore(store);
+
+  return res.status(201).json({ success: true, data: event });
+});
+
 // 3. Get single QR Code
 router.get("/qr/:id", async (req, res) => {
   try {
@@ -430,87 +544,6 @@ router.delete("/qr/:id", async (req, res) => {
   writeStore(store);
 
   return res.json({ success: true, message: "QR Code deleted successfully", count: beforeLen - store.qrCodes.length });
-});
-
-// 7. Get Scan Events
-router.get("/qr/scans", async (req, res) => {
-  try {
-    const dbScans = await prisma.qRScanEvent.findMany({
-      include: { qrCode: true },
-      orderBy: { scannedAt: "desc" },
-    });
-    if (dbScans && dbScans.length > 0) {
-      const formatted = dbScans.map((s) => {
-        const info = s.deviceInfoJson || {};
-        const qrDesign = typeof s.qrCode?.designJson === "object" ? s.qrCode.designJson : {};
-        const purpose = `${qrDesign.purpose || ""} ${s.qrCode?.purpose || ""} ${s.qrCode?.name || ""}`.toLowerCase();
-        let defaultSource = "Direct Print / Flyer";
-        if (/vehicle|van|vinyl/i.test(purpose)) defaultSource = "Vehicle Vinyl Sticker";
-        else if (/product|label/i.test(purpose)) defaultSource = "Product Label";
-        else if (/hub|banner|facade/i.test(purpose)) defaultSource = "Hub Facade Banner";
-        else if (/poster|reatchall/i.test(purpose)) defaultSource = "Direct Print / Poster";
-
-        return {
-          id: s.id,
-          qrId: s.qrCodeId,
-          qrName: s.qrCode?.name || info.qrName || "VillagKart QR",
-          campaign: qrDesign.campaign || info.campaign || "Direct Routing",
-          timestamp: s.scannedAt.toISOString().replace("T", " ").substring(0, 19),
-          device: info.device || "Desktop",
-          source: info.source || defaultSource,
-          medium: info.medium || "QR Scan Event",
-          hub: info.hub || s.qrCode?.warehouse?.name || "Phirangipuram Warehouse",
-          village: info.village || qrDesign.village || "Phirangipuram Village",
-          outcome: s.conversionTriggered ? "Conversion Attributed" : (info.outcome || "Redirected"),
-          conversion: info.conversion || (s.conversionTriggered ? "Verified Registration" : "None (Direct Scan)"),
-          ipCountry: info.ipCountry || "India (Andhra Pradesh)",
-          durationMs: info.durationMs || 185,
-        };
-      });
-      return res.json({ success: true, data: formatted });
-    }
-  } catch (err) {
-    console.warn("[QRStudio] DB query error on scans:", err.message);
-  }
-
-  const store = readStore();
-  return res.json({ success: true, data: store.scanEvents || [] });
-});
-
-// 8. Record Scan Event in PostgreSQL DB
-router.post("/qr/scans", async (req, res) => {
-  const body = req.body || {};
-  const eventId = `scan_${Date.now()}`;
-
-  try {
-    if (body.qrId) {
-      const qrExists = await prisma.qRCode.findUnique({ where: { id: body.qrId } });
-      if (qrExists) {
-        await prisma.qRScanEvent.create({
-          data: {
-            id: eventId,
-            qrCodeId: body.qrId,
-            deviceInfoJson: body,
-            conversionTriggered: Boolean(body.triggerConversion),
-          },
-        });
-        console.log(`[QRStudio] Successfully recorded scan event for QR ${body.qrId} in DB.`);
-      }
-    }
-  } catch (err) {
-    console.warn(`[QRStudio] Error saving scan to DB:`, err.message);
-  }
-
-  const store = readStore();
-  const event = {
-    id: eventId,
-    timestamp: new Date().toISOString().replace("T", " ").substring(0, 19),
-    ...body,
-  };
-  store.scanEvents = [event, ...(store.scanEvents || [])];
-  writeStore(store);
-
-  return res.status(201).json({ success: true, data: event });
 });
 
 export const handleQRRedirect = async (req, res) => {
