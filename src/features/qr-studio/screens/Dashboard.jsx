@@ -255,9 +255,8 @@ export const Dashboard = () => {
       } else if (text.includes('poster') || text.includes('campaign') || text.includes('retail') || text.includes('wall')) {
         buckets['Poster'].count++;
       } else {
-        const catKeys = ['Poster', 'Flyer', 'Vehicle Vinyl Sticker', 'Product Label', 'Hub Facade Banner'];
-        const chosen = catKeys[idx % catKeys.length];
-        buckets[chosen].count++;
+        // Uncategorized default to Poster only if QR codes exist
+        buckets['Poster'].count++;
       }
     });
 
@@ -268,9 +267,9 @@ export const Dashboard = () => {
   }, [qrCodes]);
 
   const topCategory = useMemo(() => {
-    if (!categoryMetrics || categoryMetrics.length === 0) return { name: 'Poster', share: 0 };
+    if (!categoryMetrics || categoryMetrics.length === 0 || qrCodes.length === 0) return { name: 'None', share: 0 };
     return [...categoryMetrics].sort((a, b) => b.count - a.count)[0];
-  }, [categoryMetrics]);
+  }, [categoryMetrics, qrCodes.length]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

@@ -1062,7 +1062,7 @@ export const QRWizard = () => {
                 )}
               </div>
 
-              {/* Campaign Title & Supporting Text */}
+              {/* Campaign Title */}
               <div>
                 <label className="form-label" style={{ fontSize: '12px' }}>Campaign Title</label>
                 <input
@@ -1072,18 +1072,6 @@ export const QRWizard = () => {
                   value={wizardData.campaignTitle}
                   onChange={(e) => updateData('campaignTitle', e.target.value)}
                   placeholder="e.g. VillagKart Fresh Grocery"
-                />
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: '12px' }}>Supporting Text</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  style={{ fontSize: '12.5px' }}
-                  value={wizardData.supportingText}
-                  onChange={(e) => updateData('supportingText', e.target.value)}
-                  placeholder="e.g. Daily arriving 8 AM - 12 PM"
                 />
               </div>
             </div>

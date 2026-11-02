@@ -820,7 +820,7 @@ export const QRDetails = () => {
               Description & Strategic Purpose
             </div>
             <p style={{ margin: 0, fontSize: '13.5px', color: '#334155', lineHeight: '1.55', fontWeight: 500 }}>
-              {qr.purpose || qr.design?.purpose || qr.design?.supportingText || qr.reviewerComments || 'Direct Campaign Routing'}
+              {qr.purpose || qr.design?.purpose || qr.reviewerComments || 'No specific description provided for this QR code.'}
             </p>
           </div>
 

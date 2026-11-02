@@ -100,5 +100,16 @@ export const qrApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Audit Events & Governance
+  getAuditEvents: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/qr/audit${query ? `?${query}` : ''}`);
+  },
+  recordAuditEvent: (data) =>
+    apiRequest('/qr/audit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 

@@ -146,61 +146,17 @@ export const QRProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  // Hubs state
-  const [hubs, setHubs] = useState(INITIAL_HUBS);
+  // Hubs state - loaded live from Backend API
+  const [hubs, setHubs] = useState([]);
 
-  // Master Data
-  const [qrCodes, setQrCodes] = useState(() => {
-    const saved = localStorage.getItem('vk_qr_codes');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((item) => ({
-          ...item,
-          status: normalizeLifecycleStatus(item.status),
-        }));
-      } catch {
-        // Fall back to empty
-      }
-    }
-    return INITIAL_QR_CODES;
-  });
-
-  const [campaigns, setCampaigns] = useState(() => {
-    const saved = localStorage.getItem('vk_campaigns');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return INITIAL_CAMPAIGNS;
-  });
-
-  const [templates] = useState(INITIAL_TEMPLATES);
-  const [scanEvents, setScanEvents] = useState(() => {
-    const saved = localStorage.getItem('vk_scan_events');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return INITIAL_SCAN_EVENTS;
-  });
-
-  const [approvals, setApprovals] = useState(() => {
-    const saved = localStorage.getItem('vk_approvals');
-    if (!saved) return INITIAL_APPROVALS;
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return INITIAL_APPROVALS;
-    }
-  });
-
+  // Master Data - loaded live from Backend API
+  const [qrCodes, setQrCodes] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [templates] = useState([]);
+  const [scanEvents, setScanEvents] = useState([]);
+  const [approvals, setApprovals] = useState([]);
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
-  const [auditLogs, setAuditLogs] = useState(() => {
-    const saved = localStorage.getItem('vk_audit_logs');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return INITIAL_AUDIT_LOGS;
-  });
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [toasts, setToasts] = useState([]);
   const [wizardStep, setWizardStep] = useState(1);
@@ -224,16 +180,18 @@ export const QRProvider = ({ children }) => {
     onSuccess: null,
   });
 
-  // Fetch initial hubs and QR data from API with clean fallback
+  // Fetch initial hubs and QR data live from Backend API (strictly no dummy data)
   const fetchHubs = useCallback(async () => {
     try {
       const res = await qrApi.getHubs();
       if (res?.data && Array.isArray(res.data)) {
         setHubs(res.data);
+      } else {
+        setHubs([]);
       }
     } catch (err) {
-      // Keep existing hubs without crashing
       console.warn('[QRStudio] Failed to load hubs from API:', err.message);
+      setHubs([]);
     }
   }, []);
 
@@ -247,10 +205,13 @@ export const QRProvider = ({ children }) => {
           ...q,
           status: normalizeLifecycleStatus(q.status),
         })));
+      } else {
+        setQrCodes([]);
       }
     } catch (err) {
-      console.warn('[QRStudio] Failed to fetch QR codes from API, using persisted store:', err.message);
+      console.warn('[QRStudio] Failed to fetch QR codes from API:', err.message);
       setApiError(err.message);
+      setQrCodes([]);
     } finally {
       setIsLoading(false);
     }
@@ -261,9 +222,26 @@ export const QRProvider = ({ children }) => {
       const res = await qrApi.getScanEvents();
       if (res?.data && Array.isArray(res.data)) {
         setScanEvents(res.data);
+      } else {
+        setScanEvents([]);
       }
     } catch (err) {
       console.warn('[QRStudio] Failed to load scan events from API:', err.message);
+      setScanEvents([]);
+    }
+  }, []);
+
+  const fetchAuditEvents = useCallback(async () => {
+    try {
+      const res = await qrApi.getAuditEvents();
+      if (res?.data && Array.isArray(res.data)) {
+        setAuditLogs(res.data);
+      } else {
+        setAuditLogs([]);
+      }
+    } catch (err) {
+      console.warn('[QRStudio] Failed to load audit events from API:', err.message);
+      setAuditLogs([]);
     }
   }, []);
 
@@ -271,7 +249,8 @@ export const QRProvider = ({ children }) => {
     fetchHubs();
     fetchQRCodes();
     fetchScanEvents();
-  }, [fetchHubs, fetchQRCodes, fetchScanEvents]);
+    fetchAuditEvents();
+  }, [fetchHubs, fetchQRCodes, fetchScanEvents, fetchAuditEvents]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -314,18 +293,23 @@ export const QRProvider = ({ children }) => {
     }, 4000);
   }, []);
 
-  const addAuditLog = useCallback((action, reference, versionDiff, decision = 'Executed', outcome = 'Success') => {
+  const addAuditLog = useCallback((action, reference, versionDiff, decision = 'Executed', outcome = 'Success', metadata = {}) => {
     const newLog = {
       id: 'AUD-' + Math.floor(1000 + Math.random() * 9000),
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
       user: `${currentRole} User`,
+      role: currentRole,
       action,
       reference,
       versionDiff,
       decision,
       outcome,
+      metadata,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+    if (qrApi.recordAuditEvent) {
+      qrApi.recordAuditEvent(newLog).catch(() => {});
+    }
   }, [currentRole]);
 
   const resetWizard = useCallback((clearNotification = false) => {
@@ -461,8 +445,8 @@ export const QRProvider = ({ children }) => {
         showLogo: wizardData.showLogo !== false,
         hasCtaFrame: wizardData.hasCtaFrame !== false,
         ctaText: wizardData.ctaText || 'SCAN FOR FRESH SAVINGS',
-        campaignTitle: wizardData.campaignTitle || 'VillagKart Fresh Harvest',
-        supportingText: wizardData.supportingText || 'Farm direct to your village doorstep',
+        campaignTitle: wizardData.campaignTitle || '',
+        supportingText: wizardData.supportingText || '',
         quietZone: wizardData.quietZone || 4,
         errorCorrection: wizardData.errorCorrection || 'Q',
       },
@@ -564,8 +548,8 @@ export const QRProvider = ({ children }) => {
         showLogo: wizardData.showLogo !== false,
         hasCtaFrame: wizardData.hasCtaFrame !== false,
         ctaText: wizardData.ctaText || 'SCAN FOR FRESH SAVINGS',
-        campaignTitle: wizardData.campaignTitle || 'VillagKart Fresh Harvest',
-        supportingText: wizardData.supportingText || 'Farm direct to your village doorstep',
+        campaignTitle: wizardData.campaignTitle || '',
+        supportingText: wizardData.supportingText || '',
         quietZone: wizardData.quietZone || 4,
         errorCorrection: wizardData.errorCorrection || 'Q',
       },
@@ -866,6 +850,7 @@ export const QRProvider = ({ children }) => {
         apiError,
         fetchQRCodes,
         fetchScanEvents,
+        fetchAuditEvents,
         toasts,
         showToast,
         addAuditLog,
