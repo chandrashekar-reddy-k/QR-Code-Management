@@ -274,7 +274,7 @@ export const ScanHistory = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           {/* Search Bar */}
-          <div style={{ position: 'relative', flex: '1 1 450px', minWidth: '360px' }}>
+          <div style={{ position: 'relative', flex: '1 1 540px', minWidth: '380px' }}>
             <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
@@ -285,7 +285,7 @@ export const ScanHistory = () => {
                 setAuditPage(1);
               }}
               className="input-field"
-              style={{ paddingLeft: '38px', height: '38px', fontSize: '13px' }}
+              style={{ paddingLeft: '38px', height: '38px', fontSize: '13px', width: '100%' }}
             />
             {auditSearch && (
               <button
@@ -578,7 +578,7 @@ export const ScanHistory = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               padding: '12px 20px',
               borderTop: '1px solid #E5E7EB',
               background: '#F9FAFB',
@@ -586,11 +586,6 @@ export const ScanHistory = () => {
               gap: '12px',
             }}
           >
-            <div style={{ fontSize: '13px', color: '#6B7280' }}>
-              Showing {(validAuditPage - 1) * auditPageSize + 1} to {Math.min(validAuditPage * auditPageSize, filteredAuditLogs.length)} of{' '}
-              {filteredAuditLogs.length} events
-            </div>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 type="button"
